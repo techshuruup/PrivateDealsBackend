@@ -27,6 +27,17 @@
 
 Commented Pre-IPO reminder/escalation/auto-cancel schedules exist — enable only with product/ops agreement.
 
+## GitHub Actions deploy
+
+A push to `main` runs [`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml). GitHub SSHs to the VPS and, in `/home/privatedeals-web/htdocs/privatedeals.in/backend`:
+
+1. `git pull origin main`
+2. `composer install --no-dev --optimize-autoloader`
+3. `php artisan migrate --force` (pending migrations only)
+4. `php artisan optimize`
+
+Repo secrets, not stored in the workflow file: `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`, `VPS_PORT`. The server `.env` stays on the VPS. Queue workers and cron are not restarted by this workflow.
+
 ## Deploy checklist (typical)
 
 1. `composer install --no-dev` (or with dev as appropriate)
