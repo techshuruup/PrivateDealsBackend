@@ -1,4 +1,4 @@
 ﻿User-agent: *
 Allow: /
 
-Sitemap: https://privatedeals.in/sitemap.xml
+Sitemap: https://www.privatedeals.in/sitemap.xml

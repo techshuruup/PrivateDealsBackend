@@ -20,6 +20,7 @@ class MarketingPageController extends Controller
     public function sitemap(): Response
     {
         $siteUrl = rtrim(config('pages.site_url'), '/');
+        $siteUrl = preg_replace('#^(https?://)(?!www\.)#', '$1www.', $siteUrl);
         $pages = collect(config('pages.pages'))
             ->filter(fn (array $page) => ! empty($page['sitemap']))
             ->sortByDesc('priority');
