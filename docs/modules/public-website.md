@@ -25,7 +25,7 @@ Admin (`/admin`) and APIs (`/api/*`) are unchanged and live in the same Laravel 
 | `/how-it-works`, `/contact` | Process + contact (form posts client-side to PrivateDeals API) |
 | `/privacy-policy`, `/terms-conditions`, `/risk-disclosure`, `/disclaimer` | Legal |
 | `/login` | 301 → `config('pages.partner_login_url')` |
-| `/sitemap.xml` | Marketing sitemap from `pages` config |
+| `/sitemap.xml` | Marketing sitemap from `pages` config. Do not add `public/sitemap.xml`; Apache serves that file instead of this route. |
 
 Legacy redirects (301): HTML paths from old static site; also `/aboutus` → `/about`, `/contactus` → `/contact`, `/terms-of-use` → `/terms-conditions`, `/risk-disclouser` → `/risk-disclosure`.
 

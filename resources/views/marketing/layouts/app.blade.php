@@ -16,6 +16,7 @@
     $ogImage = config('pages.og_image');
     @endphp
     <link rel="canonical" href="{{ $canonical }}" />
+    <link rel="sitemap" type="application/xml" href="{{ route('sitemap.xml') }}" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="{{ $canonical }}" />
     <meta property="og:title" content="{{ $page['title'] ?? config('app.name') }}" />
