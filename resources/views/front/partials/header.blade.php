@@ -2,7 +2,7 @@
     <header class="system_page_nav">
         <div class="container_custom">
             <div class="content">
-                <a href="{{ route('front.home') }}" class="brand"><img src="{{ asset('core/images/logo.png') }}"
+                <a href="{{ route('home') }}" class="brand"><img src="{{ asset('core/images/logo.png') }}"
                         alt="PrivateDeals Logo" /></a>
                 <div class="social_link">
                     <p>Connect with us :</p>
@@ -26,12 +26,12 @@
                 <span></span>
                 <span></span>
             </div>
-            <a href="{{ request()->routeIs('front.business.*') ? route('front.business.home') : route('front.home') }}"
+            <a href="{{ route('home') }}"
                 class="logo_mobile"><img src="{{ asset('core/images/logo.png') }}" alt="shuru-up-logo"
                     class="logo" /></a>
             <nav>
                 <ul id="toggle-element">
-                    <a href="{{ request()->routeIs('front.business.*') ? route('front.business.home') : route('front.home') }}"
+                    <a href="{{ route('home') }}"
                         class="logo"><img src="{{ asset('core/images/logo.png') }}" alt="shuru-up-logo"
                             class="logo" /></a>
 

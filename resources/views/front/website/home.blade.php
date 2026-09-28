@@ -306,7 +306,7 @@ Home
                         structured allocations. Let your clients invest in the next big thing, before the rest of the
                         world notices.
                     </p>
-                    <a href="{{ route('front.cards.startup') }}" class="common-cta-btn">Explore More <i
+                    <a href="{{ route('page.opportunities') }}" class="common-cta-btn">Explore More <i
                             class="fa fa-arrow-right"></i></a>
                 </div>
             </div>
@@ -351,7 +351,7 @@ Home
                 growth.unique opportunities that have the potential for exponential growth.unique opportunities that
                 have the potential for exponential growth.
             </p>
-            <a href="{{ route('front.abt') }}" class="common-cta-btn">More About Us <i
+            <a href="{{ route('page.about') }}" class="common-cta-btn">More About Us <i
                     class="fa fa-arrow-right"></i></a>
         </div>
     </div>
@@ -413,7 +413,7 @@ Home
     <div class="container">
         <div class="gradient-blob blob-5"></div>
         <div class="card-container">
-            <a href="{{ route('front.cards.primary') }}" class="card gradient-first open">
+            <a href="{{ route('page.primary') }}" class="card gradient-first open">
                 <h2 class="heading">Primary Market</h2>
                 <p class="short-description paragraph">Raise Capital</p>
                 <p class="long-description paragraph">
@@ -425,7 +425,7 @@ Home
                 <span class="arrow"><i class="fas fa-arrow-right"></i></span>
             </a>
 
-            <a href="{{ route('front.cards.secondary') }}" class="card gradient-second">
+            <a href="{{ route('page.secondary') }}" class="card gradient-second">
                 <h2>Secondary</h2>
                 <p class="short-description paragraph">Exit Flexibility</p>
                 <p class="long-description paragraph">
@@ -436,7 +436,7 @@ Home
                 <span class="arrow"><i class="fas fa-arrow-right"></i></span>
             </a>
 
-            <a href="{{ route('front.cards.preipo') }}" class="card gradient-third">
+            <a href="{{ route('page.unlisted') }}" class="card gradient-third">
                 <h2>Private Equity</h2>
                 <p class="short-description paragraph">Private Equity Investments</p>
                 <p class="long-description paragraph">
@@ -473,7 +473,7 @@ Home
                     unlocking opportunities in private markets by providing investors exclusive access to high-potential
                     private companies. We aim to bridge the gap between investors and exceptional private companies,
                     empowering you to access unique opportunities that have the potential for exponential growth. </p>
-                <a href="{{ route('front.abt') }}" class="btn btn-light custom-button">More About Us</a>
+                <a href="{{ route('page.about') }}" class="btn btn-light custom-button">More About Us</a>
             </div>
             <div class="col-lg-1">
             </div>
@@ -510,7 +510,7 @@ Home
                         <img src="{{ asset('website-assets/images/store-icon/windows.svg') }}" alt="">
                     </a>
                 </div>
-                <a href="{{ route('front.terminal') }}" class="btn btn-light custom-button mt-4">More About
+                <a href="{{ route('page.how-it-works') }}" class="btn btn-light custom-button mt-4">More About
                     Terminals</a>
             </div>
             <div class="col-lg-1">

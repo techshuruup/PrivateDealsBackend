@@ -134,7 +134,7 @@
                 <a href="{{ route('front.raise.auth.apply') }}" class="register"><i
                         class="fa-solid fa-user-gear"></i><span>Apply</span></a>
             </div>
-            <a href="{{ route('front.home') }}" class="btn_custom">For Investor</a>
+            <a href="{{ route('home') }}" class="btn_custom">For Investor</a>
         @endif
     @elseif (request()->routeIs('front.business.*'))
         @if (Auth::guard('partner')->check())

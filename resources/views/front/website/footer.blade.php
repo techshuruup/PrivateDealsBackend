@@ -51,8 +51,8 @@
                 <ul class="footer-links">
                     {{-- <li><a href="{{ route('front.cards.primary') }}">Primary</a></li>
                     <li><a href="{{ route('front.cards.secondary') }}">Secondary</a></li> --}}
-                    <li><a href="{{ route('front.cards.startup') }}">Startup</a></li>
-                    <li><a href="{{ route('front.cards.preipo') }}">Private Equity</a></li>
+                    <li><a href="{{ route('page.opportunities') }}">Startup</a></li>
+                    <li><a href="{{ route('page.unlisted') }}">Private Equity</a></li>
                 </ul>
             </div>
 
@@ -60,10 +60,10 @@
             <div class="col-6 col-sm-6 col-md-6 col-lg-2 order-1 order-lg-3">
                 <h5>About Us</h5>
                 <ul class="footer-links">
-                    <li><a href="{{ route('front.abt') }}">About Us</a></li>
-                    <li><a href="{{ route('front.terminal') }}">Terminal</a></li>
-                    <li><a href="{{ route('front.contactus.get') }}">Contact Us</a></li>
-                    <li><a href="{{ route('front.disclaimer') }}">Disclaimer</a></li>
+                    <li><a href="{{ route('page.about') }}">About Us</a></li>
+                    <li><a href="{{ route('page.how-it-works') }}">Terminal</a></li>
+                    <li><a href="{{ route('page.contact') }}">Contact Us</a></li>
+                    <li><a href="{{ route('page.disclaimer') }}">Disclaimer</a></li>
                 </ul>
             </div>
 
@@ -71,9 +71,9 @@
             <div class="col-6 col-sm-6 col-lg-2 order-1 order-lg-4">
                 <h5>Legal Info</h5>
                 <ul class="footer-links">
-                    <li><a href="{{ route('front.privacypolicy') }}">Privacy Policy</a></li>
-                    <li><a href="{{ route('front.termsofuse') }}">Terms Of Use</a></li>
-                    <li><a href="{{ route('front.riskdisclouser') }}">Risk Disclosure</a></li>
+                    <li><a href="{{ route('page.privacy-policy') }}">Privacy Policy</a></li>
+                    <li><a href="{{ route('page.terms-conditions') }}">Terms Of Use</a></li>
+                    <li><a href="{{ route('page.risk-disclosure') }}">Risk Disclosure</a></li>
                     {{-- <li><a href="#warnings">Risk Warnings</a></li> --}}
                 </ul>
             </div>

@@ -1,5 +1,11 @@
-@extends('front.layouts.master')
-@section('content')
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Under Maintenance</title>
+</head>
+<body>
     <div class="maintenance_page">
         <div id="main">
             <div class="container_custom">
@@ -13,10 +19,10 @@
                             Sorry for the inconvenience. We&rsquo;re performing some maintenance at the moment. we&rsquo;ll
                             be back up shortly!
                         </p>
-                        <p>&mdash; The {{ CommonHelper::appSettings('app_name') }} Team</p>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-@endsection
+</body>
+</html>
