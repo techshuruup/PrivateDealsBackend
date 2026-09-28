@@ -1,7 +1,21 @@
 # START HERE — Partner marketplace (new system)
 
 **Open this file first** for the product story.  
-**Business diagrams (use cases, swimlanes, permissions):** → **[business-diagrams/README.md](business-diagrams/README.md)**
+**Business diagrams:** → **[business-diagrams/README.md](business-diagrams/README.md)**  
+**Transaction diagrams (buy flow):** → **[business-diagrams/transaction/README.md](business-diagrams/transaction/README.md)**
+
+---
+
+## Transaction diagrams (buy mandate → complete)
+
+| Item | Open |
+|------|------|
+| **Transaction index** | [business-diagrams/transaction/README.md](business-diagrams/transaction/README.md) |
+| Use case | [business-diagrams/transaction/use-case.md](business-diagrams/transaction/use-case.md) |
+| Activity | [business-diagrams/transaction/activity.md](business-diagrams/transaction/activity.md) |
+| Swimlane activity | [business-diagrams/transaction/swimlane.md](business-diagrams/transaction/swimlane.md) |
+
+Investor signs mandate + deal slip and pays offline; Partner uploads payment receipt and confirms; Seller accepts/rejects and handles share transfer.
 
 ---
 
@@ -26,6 +40,7 @@
 | Use cases — WM family | [business-diagrams/use-cases/wealth-manager.md](business-diagrams/use-cases/wealth-manager.md) |
 | Use cases — Seller | [business-diagrams/use-cases/seller.md](business-diagrams/use-cases/seller.md) |
 | Swimlanes A–F | [business-diagrams/swimlanes/](business-diagrams/swimlanes/) |
+| **Transaction diagrams** | [business-diagrams/transaction/README.md](business-diagrams/transaction/README.md) |
 | PlantUML sources | [business-diagrams/plantuml/](business-diagrams/plantuml/) |
 
 Also: older Mermaid pack under [diagrams/](diagrams/) (superseded for stakeholder reviews by **business-diagrams**).

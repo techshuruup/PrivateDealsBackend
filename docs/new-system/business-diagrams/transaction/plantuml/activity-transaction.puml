@@ -1,0 +1,27 @@
+@startuml
+start
+:Partner selects Investor and clicks Buy;
+:Status: Mandate generated — signature pending;
+:Investor signs mandate;
+:Status: Share confirmation pending;
+:Seller sees request on dashboard;
+if (Accept or Reject?) then (Reject)
+  :Transaction cancelled;
+  stop
+else (Accept)
+  :Seller confirms shares;
+  :Status: Deal slip generated;
+  :Investor signs deal slip;
+  :Status: Deal slip signed;
+  :Investor pays offline;
+  :Partner uploads payment receipt;
+  :Status: Payment receipt uploaded — verification pending;
+  :Seller confirms payment received;
+  :Status: Share transfer pending;
+  :Seller uploads share-transfer receipt;
+  :Status: Share transfer receipt uploaded — waiting confirmation;
+  :Partner confirms shares;
+  :Transaction completed;
+  stop
+endif
+@enduml

@@ -26,7 +26,6 @@ Admin (`/admin`) and APIs (`/api/*`) are unchanged and live in the same Laravel 
 | `/privacy-policy`, `/terms-conditions`, `/risk-disclosure`, `/disclaimer` | Legal |
 | `/login` | 301 → `config('pages.partner_login_url')` |
 | `/sitemap.xml` | Marketing sitemap from `pages` config |
-| `/sitemap-news.xml` | Kept via `SitemapController@news` (news SEO) |
 
 Legacy redirects (301): HTML paths from old static site; also `/aboutus` → `/about`, `/contactus` → `/contact`, `/terms-of-use` → `/terms-conditions`, `/risk-disclouser` → `/risk-disclosure`.
 

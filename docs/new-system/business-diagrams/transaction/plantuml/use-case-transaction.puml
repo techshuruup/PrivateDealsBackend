@@ -1,0 +1,37 @@
+@startuml
+left to right direction
+actor "Partner\n(buyer-side)" as Partner
+actor "Investor" as Investor
+actor "Seller" as Seller
+
+rectangle "Transaction system" {
+  usecase "Start buy for investor" as UC1
+  usecase "Generate buy mandate" as UC2
+  usecase "Sign mandate" as UC3
+  usecase "Show mandate on seller dashboard" as UC4
+  usecase "Accept mandate" as UC5
+  usecase "Reject mandate — cancel" as UC6
+  usecase "Generate deal slip" as UC7
+  usecase "Sign deal slip" as UC8
+  usecase "Pay offline" as UC9
+  usecase "Upload payment receipt" as UC10
+  usecase "Confirm payment received" as UC11
+  usecase "Upload share-transfer receipt" as UC12
+  usecase "Confirm shares — complete" as UC13
+}
+
+Partner --> UC1
+Partner --> UC10
+Partner --> UC13
+Investor --> UC3
+Investor --> UC8
+Investor --> UC9
+Seller --> UC5
+Seller --> UC6
+Seller --> UC11
+Seller --> UC12
+
+UC1 ..> UC2 : include
+UC2 ..> UC3 : include
+UC5 ..> UC7 : include
+@enduml

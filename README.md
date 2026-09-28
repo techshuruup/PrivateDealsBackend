@@ -8,6 +8,7 @@
 
 **Diagrams:**
 
+- **[Transaction diagrams](docs/new-system/business-diagrams/transaction/README.md)** — Buy mandate → complete
 - **[Business diagrams](docs/new-system/business-diagrams/README.md)** — Use cases, swimlanes A–F, permissions, PlantUML
 - [START-HERE](docs/new-system/START-HERE.md)
 
@@ -56,5 +57,5 @@
 
 ### Default Superadmin Login
 
-- **Username:** shuruup
+- **Username:** private-deals
 - **Password:** PrivateDeals@123

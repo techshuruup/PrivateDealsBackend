@@ -17,7 +17,7 @@ return new class extends Migration
         UserAdminModel::create([
             'role'                  => 'admin',
             'name'                  => 'PrivateDeals Administrator',
-            'username'              => 'shuruup',
+            'username'              => 'private-deals',
             'mobile_no'             => '9867052562',
             'email'                 => 'tech@shuruup.com',
             'password'              => Hash::make('PrivateDeals@123'),

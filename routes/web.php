@@ -115,7 +115,6 @@ use Illuminate\Support\Facades\Log;
 // use Maatwebsite\Excel\Excel;
 use App\Models\ApiLogModel;
 use App\Exports\TopActiveInvestorsExport;
-use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\Web\Admin\Setting\AppBuildController;
 use App\Http\Controllers\Web\Website\SiteController;
 use Maatwebsite\Excel\Facades\Excel;
@@ -123,9 +122,8 @@ use Maatwebsite\Excel\Facades\Excel;
 // Route::get('sync-data', [TestController::class, 'syncData']);
 Route::get('export-csv', [TestController::class, 'exportCSV']);
 
-// SEO Routes (marketing sitemap from PrivatedealsWebsite; news sitemap kept)
+// SEO: marketing sitemap
 Route::get('sitemap.xml', [MarketingPageController::class, 'sitemap'])->name('sitemap.xml');
-Route::get('sitemap-news.xml', [SitemapController::class, 'news'])->name('sitemap.news.xml');
 
 Route::group(['middleware' => [CoreMiddleware::class]], function () {
     // Route::get('test', [TestController::class, 'test']);

@@ -11,7 +11,7 @@
 5. Admin under `/admin` → session `admin` guard + `hasPermission:*` where configured.
 6. Investor / partner / startup web areas use dedicated redirect-if-(not)-authenticated middleware classes under `app/Http/Middleware/`.
 
-Sitemap: `sitemap.xml` / `sitemap-news.xml` via `SitemapController`.
+Sitemap: `sitemap.xml` via `MarketingPageController`.
 
 ---
 

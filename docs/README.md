@@ -33,6 +33,7 @@ See [maintenance/living-docs-rules.md](maintenance/living-docs-rules.md).
 |----------|---------|
 | [**new-system/START-HERE.md**](new-system/START-HERE.md) | **Open this first** — whole story |
 | [**new-system/business-diagrams/README.md**](new-system/business-diagrams/README.md) | **Use cases · Swimlanes A–F · Permissions · PlantUML** |
+| [**new-system/business-diagrams/transaction/README.md**](new-system/business-diagrams/transaction/README.md) | **Transaction buy flow** — use case · activity · swimlane |
 | [new-system/business-diagrams/role-permissions.md](new-system/business-diagrams/role-permissions.md) | Role–permission table |
 | [new-system/diagrams/README.md](new-system/diagrams/README.md) | Older Mermaid diagram pack |
 | [new-system/actors/README.md](new-system/actors/README.md) | Who is who |

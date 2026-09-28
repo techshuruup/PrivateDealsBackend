@@ -23,6 +23,7 @@
 | Swimlane D — Create company | [swimlanes/D-company-create.md](swimlanes/D-company-create.md) |
 | Swimlane E — Seller creates deal → available in WM | [swimlanes/E-seller-create-deal.md](swimlanes/E-seller-create-deal.md) |
 | Swimlane F — Seller updates share price | [swimlanes/F-seller-update-share-price.md](swimlanes/F-seller-update-share-price.md) |
+| **Transaction (buy) — use case / activity / swimlane** | [transaction/README.md](transaction/README.md) |
 | Editable PlantUML sources | [plantuml/](plantuml/) |
 
 Markdown pages include **Mermaid** for viewing in GitHub/Cursor. Matching **`.puml`** files are editable PlantUML sources.

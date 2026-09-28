@@ -1,0 +1,45 @@
+@startuml
+|Partner|
+start
+:Select Investor and click Buy;
+|System|
+:Mandate generated — signature pending;
+|Investor|
+:Sign buy mandate;
+|System|
+:Share confirmation pending;
+|Seller|
+:See mandate on dashboard;
+if (Accept or Reject?) then (Reject)
+  |System|
+  :Transaction cancelled;
+  stop
+else (Accept)
+  :Confirm shares;
+  |System|
+  :Deal slip generated;
+  |Investor|
+  :Sign deal slip;
+  |System|
+  :Deal slip signed;
+  |Investor|
+  :Transfer amount offline;
+  |Partner|
+  :Upload payment receipt;
+  |System|
+  :Payment receipt uploaded — verification pending;
+  |Seller|
+  :Confirm payment received;
+  |System|
+  :Share transfer pending;
+  |Seller|
+  :Upload share-transfer receipt;
+  |System|
+  :Share transfer receipt uploaded — waiting confirmation;
+  |Partner|
+  :Confirm shares received;
+  |System|
+  :Transaction completed;
+  stop
+endif
+@enduml
