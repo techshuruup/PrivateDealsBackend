@@ -5,7 +5,7 @@
     @endsection
 
     @section('breadcrumbs')
-    {{ Breadcrumbs::render('dashboard') }}
+    {{ Breadcrumbs::render('dashboard') }} - PrivateDeals
     @endsection
 
 
