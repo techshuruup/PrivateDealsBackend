@@ -8,7 +8,7 @@ Deliver WhatsApp, push (FCM), email/SMS, and in-app notifications for KYC, trans
 
 | Channel | Key code | Persistence |
 |---------|----------|-------------|
-| WhatsApp | `WhatsAppMessagesHelper`, Jobs under `Jobs/Whatsapp`, webhook `webhook/11za` | `ReportMessagesWhatsappModel`, replies, broadcasts |
+| WhatsApp | `WhatsAppMessagesHelper`, Jobs under `Jobs/Whatsapp`, webhook `webhook/11za`. OTP verification uses template `otp_verification_sec` (`UtillsHelper::sendVerificationCode`) | `ReportMessagesWhatsappModel`, replies, broadcasts |
 | Push | `FCMService`, `FirebasePushNotificationSendJob`, `PushNotificationJob` | device tokens `CoreFirebaseDeviceTokenModel`, `NotificationsModel`, broadcast models |
 | Email/SMS | mail config, `SMSHelper`, report email/SMS models | `ReportMessagesEmailModel`, `ReportMessagesSMSModel` |
 | In-app | notification list APIs | `NotificationsModel`, `BroadcastNotificationModel` |

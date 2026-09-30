@@ -29,6 +29,7 @@ use App\Http\Controllers\Web\Admin\Master\WebsiteSocialMediaController as Master
 use App\Http\Controllers\Web\Admin\NotificationController as AdminNotificationController;
 use App\Http\Controllers\Web\Admin\ProfileMenu\NotificationController as AdminProfileNotificationController;
 use App\Http\Controllers\Web\Admin\Partner\DistributorController as AdminPartnerDistributorController;
+use App\Http\Controllers\Web\Admin\Partner\InstitutionController as AdminPartnerInstitutionController;
 use App\Http\Controllers\Web\Admin\Partner\RetailersController as AdminPartnerRetailersController;
 use App\Http\Controllers\Web\Admin\Partner\WealthManagerController as AdminPartnerWealthManagerController;
 use App\Http\Controllers\Web\Admin\PortfolioController as AdminPortfolioController;
@@ -211,6 +212,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
                 Route::post('save', [AdminPartnerDistributorController::class, 'store'])->name('store');
                 Route::put('update/{uuid}', [AdminPartnerDistributorController::class, 'update'])->name('update');
                 Route::delete('delete/{id}', [AdminPartnerDistributorController::class, 'delete'])->name('destroy');
+            });
+
+            Route::name('institution.')->prefix('institution')->group(function () {
+                Route::get('list', [AdminPartnerInstitutionController::class, 'list'])->name('list');
+                Route::get('create', [AdminPartnerInstitutionController::class, 'create'])->name('create');
+                Route::get('view/{uuid}', [AdminPartnerInstitutionController::class, 'view'])->name('view');
+                Route::get('edit/{uuid}', [AdminPartnerInstitutionController::class, 'edit'])->name('edit');
+
+                Route::post('save', [AdminPartnerInstitutionController::class, 'store'])->name('store');
+                Route::put('update/{uuid}', [AdminPartnerInstitutionController::class, 'update'])->name('update');
+                Route::delete('delete/{id}', [AdminPartnerInstitutionController::class, 'delete'])->name('destroy');
             });
 
             Route::name('retailers.')->prefix('retailers')->group(function () {

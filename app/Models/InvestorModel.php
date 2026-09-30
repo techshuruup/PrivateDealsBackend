@@ -57,6 +57,7 @@ class InvestorModel extends Authenticatable
         'is_active',
         'is_blocked',
         'is_deleted',
+        'is_self',
         'is_demo',
         'is_primary_access',
         'is_secondary_access',

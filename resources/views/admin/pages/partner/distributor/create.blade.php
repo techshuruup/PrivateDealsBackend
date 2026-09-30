@@ -126,6 +126,7 @@
                         </div>
                     </div>
                 </div>
+                @include('admin.pages.partner.child.cml-kyc')
                 <div class="d-flex justify-content-end mt-4">
                     <a href="{{ route('admin.partner.distributor.list') }}" class="btn btn-light me-3">Cancel</a>
                     <button type="submit" id="kt_ecommerce_edit_order_submit" class="btn btn-primary">

@@ -14,15 +14,15 @@ Back-office operations for PrivateDeals: users, companies, transactions, KYC rev
 
 ## Responsibilities
 
-- Partner CRUD by type (wealth manager, distributor, retailer, relation manager)
+- Partner CRUD by type (wealth manager, distributor, institution, retailer, relation manager). Institution uses `admin/partner/institution` and the same fields as Distributor, including an optional Wealth Manager parent.
 - Investor management, manual KYC / AIF review
 - Primary / secondary / Pre-IPO transaction ops + document upload
-- Company master (prices, OCR import, WhatsApp report PDFs)
+- Company master (prices, OCR import, WhatsApp report PDFs). Pending list `/admin/company/pending-seller` still lists `approval_status=pending` seller and Institution submissions (`submitted_by_partner_id`). New seller and Institution creates are approved immediately and do not land on this list.
 - AI AutoWork (`/admin/ai-autowork`) — Company Ingest inbox + per-job AI guides
 - Coupons, BSE holidays, seller master, portfolios
 - Masters (geo, banks, sectors, industries, header tokens, …)
 - CMS pages/media, WhatsApp + push broadcasts
-- App version / build / global settings
+- App version / build / global settings. Processing fee % is `app_settings.processing_fee_percentage` (default 1, min 1, max 100) on `/admin/system-configuration/system-settings`.
 - Manager / master-admin user management
 
 ## Important files

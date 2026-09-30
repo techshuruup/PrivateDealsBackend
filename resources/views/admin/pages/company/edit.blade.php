@@ -133,13 +133,10 @@
 
                         <div class="d-flex flex-wrap gap-10 mb-5">
                             <div class="fv-row w-100 flex-md-root">
-                                <label class="required form-label">Commission</label>
-                                <input placeholder="Enter Commission" name="commission"
-                                    value="{{ old('commission', $item->commission) }}"
-                                    class="form-control mb-2 input-decimal-number" tabindex="0" type="text" />
-                                @include('admin.partials.form.input-error-message', [
-                                'key' => 'commission',
-                                ])
+                                <label class="form-label">Commission</label>
+                                <input value="{{ $item->commission }}"
+                                    class="form-control mb-2" type="text" readonly />
+                                <small class="text-muted">Stored when the company was created from the admin processing fee. Update does not change it.</small>
                             </div>
                             <div class="fv-row w-100 flex-md-root">
                                 <label class="form-label">Category</label>
@@ -450,9 +447,9 @@
                             <div class="fv-row w-100 flex-md-root">
                                 <label class="required form-label">Processing Fee Percentage (%)</label>
                                 <input placeholder="Enter Processing Fee %" name="processing_fee_percentage"
-                                    value="{{ old('processing_fee_percentage', $item->processing_fee_percentage ?? 2.00) }}"
+                                    value="{{ old('processing_fee_percentage', $item->processing_fee_percentage ?? CommonHelper::processingFeePercentage()) }}"
                                     class="form-control mb-2 input-decimal-number" tabindex="0" type="text" />
-                                <small class="text-muted">Default: 2% - Amount charged on each transaction</small>
+                                <small class="text-muted">Empty values use the admin processing fee (1–100, default 1).</small>
                                 @include('admin.partials.form.input-error-message', [
                                 'key' => 'processing_fee_percentage',
                                 ])

@@ -201,19 +201,22 @@
         }
     }
 
-    function toggleUploadMethod() {
+    function toggleUploadMethod(clearDob) {
         // Always hide PDF section if KYC is saved
         if (kycSaved) {
             pdfUploadSection.style.display = 'none';
         }
 
         if (pdfMethodRadio.checked) {
-            // PDF mode - show extract button (if not saved), make fields readonly, clear DOB
+            // PDF mode - show extract button (if not saved), make fields readonly.
+            // Clear DOB only when switching into PDF mode. A saved date stays visible on load.
             if (!kycSaved) {
                 extractButtonContainer.style.display = 'block';
             }
             makeFieldsReadonly(true);
-            clearDobField();
+            if (clearDob) {
+                clearDobField();
+            }
         } else {
             // Manual mode - hide extract button, make fields editable, restore original values
             extractButtonContainer.style.display = 'none';
@@ -256,8 +259,12 @@
         }
     }
 
-    pdfMethodRadio.addEventListener('change', toggleUploadMethod);
-    manualMethodRadio.addEventListener('change', toggleUploadMethod);
+    pdfMethodRadio.addEventListener('change', function() {
+        toggleUploadMethod(true);
+    });
+    manualMethodRadio.addEventListener('change', function() {
+        toggleUploadMethod(false);
+    });
 
     extractBtn.addEventListener('click', function() {
         const fileInput = document.getElementById('cml_file');
@@ -340,7 +347,7 @@
         });
     });
 
-    // Initialize
-    toggleUploadMethod();
+    // Initialize without wiping a date already loaded from the server
+    toggleUploadMethod(false);
 });
 </script>

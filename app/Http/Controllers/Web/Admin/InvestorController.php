@@ -510,7 +510,7 @@ class InvestorController extends Controller
     }
     function list(Request $request): View
     {
-        $query = InvestorModel::where('is_deleted', '0');
+        $query = InvestorModel::where('is_deleted', '0')->where('is_self', 0);
         if ($request->routeIs('admin.investor.active')) {
             setPageTitle('Active Investors');
             $query = $query->where('is_demo', '0')->where('is_blocked', '0')->where('is_deleted', '0')->where('preipo_kyc_status', '1')->where('is_active', '1')->orderby('updated_at', 'desc');
@@ -564,7 +564,8 @@ class InvestorController extends Controller
                 'partner',
                 'referredByInvestor'
             ])
-                ->where('is_deleted', '0');
+                ->where('is_deleted', '0')
+                ->where('is_self', 0);
             // ->where('is_demo', '0')
             // ->where('is_blocked', '0')
             // ->where('preipo_kyc_status', '1')

@@ -6,6 +6,7 @@ use App\Enums\PartnerTypeEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PartnerRequest;
 use App\Models\PartnerModel;
+use App\Repositories\PartnerRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -14,6 +15,13 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 
 class ChannelPartnerController extends Controller
 {
+    private $partnerRepo;
+
+    function __construct(PartnerRepository $partnerRepo)
+    {
+        $this->partnerRepo = $partnerRepo;
+    }
+
     function list(): View|RedirectResponse
     {
         if (Auth::guard('partner')->user()->type == PartnerTypeEnum::retailer->value) {
@@ -52,6 +60,7 @@ class ChannelPartnerController extends Controller
         $partner->ask_password_change = 1;
         $partner->type = $partnerRequest->partner;
         $partner->save();
+        $this->partnerRepo->createSelfInvestor($partner);
 
         return redirect()->route('front.business.channel_partner.list')->with('success', 'Channel Partner Created');
     }

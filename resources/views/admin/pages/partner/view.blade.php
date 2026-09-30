@@ -57,6 +57,12 @@
                                     Edit
                                 </a>
                             @endif
+                            @if (request()->routeIs('admin.partner.institution.*'))
+                                <a href="{{ route('admin.partner.institution.edit', ['uuid' => $partner->uuid]) }}"
+                                    class="btn btn-sm btn-primary me-3">
+                                    Edit
+                                </a>
+                            @endif
                             @if (request()->routeIs('admin.partner.relationalManager.*'))
                                 <a href="{{ route('admin.partner.relationalManager.edit', ['uuid' => $partner->uuid]) }}"
                                     class="btn btn-sm btn-primary me-3">

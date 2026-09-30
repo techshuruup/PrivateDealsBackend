@@ -8,7 +8,7 @@
 
 | Actor | Can create | Cannot create |
 |-------|------------|----------------|
-| **Admin** | Wealth Manager, Seller, Distributor, Retailer | Investor, Relationship Manager |
+| **Admin** | Wealth Manager, Seller, Distributor, Retailer, Institution | Investor, Relationship Manager |
 | **Wealth Manager** | Investor, Relationship Manager, Distributor, Retailer | Seller |
 | **Distributor** | Retailer, Investor, Relationship Manager | Seller, Wealth Manager |
 | **Retailer** | Investor | Other partners, RM, Seller |
@@ -16,6 +16,8 @@
 | **Seller** | — (no user accounts) | All user/role accounts |
 
 **Notes (confirmed)**
+- **Institution** is an implemented partner type. Admin creates it with the same fields as Distributor, including an optional Wealth Manager parent and required CML KYC saved on the self investor. The partner portal and partner API cannot create it. After login, Institution can create a company (`unlisted` or `secondary`) that is approved and live for partners immediately (`approval_status=approved`, `status=0`), then list the catalog, read detail, list its submissions, replace promoters and shareholders, and manage deals. Seller share-price quotes stay on the seller app.
+- Admin create for Wealth Manager, Distributor, Retailer, and Institution includes CML KYC on the self investor. Relation Manager create does not include CML and does not create a self investor.
 - Admin-created Distributors and Retailers may exist **independently** (parent not mandatory).
 - Seller may view/interact with relevant users during business processes but **cannot create or manage** their accounts.
 - Distinguish: **creates a user** vs **is the user’s parent** vs **manages assigned Investors**.

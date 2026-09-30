@@ -24,6 +24,7 @@ Investor signs mandate + deal slip and pays offline; Partner uploads payment rec
 | Application | Who |
 |-------------|-----|
 | **Wealth Manager** app | WM, Distributor, Retailer, Relationship Manager |
+| **Institution** (partner type) | Admin-created account on `partner.type`. Same create form as Distributor. Can create an unlisted or secondary company that is approved and live for partners immediately, and can use the Institution company catalog, submissions, promoters, shareholders, and deals APIs. Seller share-price quotes stay on the seller app. This is not the seller-app label in the transaction diagrams. |
 | **Private Deal Seller** app | Seller only (no subordinate users) |
 | **Admin** | External app (outside this project scope); can view all data |
 

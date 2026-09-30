@@ -5,13 +5,16 @@ namespace App\Http\Controllers\Web\Admin;
 use App\Enums\CompanyDealStatusEnum;
 use App\Enums\CompanyDealTypeEnum;
 use App\Helpers\AdminHelper;
+use App\Helpers\CommonHelper;
 use App\Helpers\UtillsHelper;
 use App\Http\Controllers\Controller;
 use App\Models\CompanyDealModel;
 use App\Models\CompanyModel;
 use App\Models\SellerMasterModel;
+use App\Services\CompanyDealPricing;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -164,7 +167,6 @@ class CompanyDealController extends Controller
             'available_quantity' => 'required|integer|min:0',
             'share_price' => 'required|numeric|min:0',
             'minimum_qty' => 'required|integer|min:1',
-            'processing_fee_percentage' => 'required|numeric|between:0,100',
             'status' => 'required|in:' . implode(',', array_column(CompanyDealStatusEnum::cases(), 'value')),
             'expired_at' => 'nullable|date',
             'is_hot_deal' => 'nullable|boolean',
@@ -190,13 +192,17 @@ class CompanyDealController extends Controller
         $deal->created_by_seller_id = $sellerId;
         $deal->deal_type = $request->deal_type;
         $deal->available_quantity = $request->available_quantity;
-        $deal->share_price = $request->share_price;
         $deal->minimum_qty = $request->minimum_qty;
-        $deal->processing_fee_percentage = $request->processing_fee_percentage;
+        app(CompanyDealPricing::class)->stampFromBase($deal, $request->share_price);
         $deal->status = $request->status;
         $deal->expired_at = $request->filled('expired_at') ? $request->expired_at : null;
         $deal->is_hot_deal = $request->boolean('is_hot_deal');
-        $deal->save();
+        DB::transaction(function () use ($deal) {
+            $deal->save();
+            if (!$deal->is_hot_deal) {
+                app(CompanyDealPricing::class)->recordNonHotHistory([(int) $deal->company_id]);
+            }
+        });
 
         AdminHelper::logPut('Created Company Deal', CompanyDealModel::class, $deal->id);
 
@@ -242,7 +248,6 @@ class CompanyDealController extends Controller
             'available_quantity' => 'required|integer|min:0',
             'share_price' => 'required|numeric|min:0',
             'minimum_qty' => 'required|integer|min:1',
-            'processing_fee_percentage' => 'required|numeric|between:0,100',
             'status' => 'required|in:' . implode(',', array_column(CompanyDealStatusEnum::cases(), 'value')),
             'expired_at' => 'nullable|date',
             'is_hot_deal' => 'nullable|boolean',
@@ -269,7 +274,7 @@ class CompanyDealController extends Controller
         $item->available_quantity = $request->available_quantity;
         $item->share_price = $request->share_price;
         $item->minimum_qty = $request->minimum_qty;
-        $item->processing_fee_percentage = $request->processing_fee_percentage;
+        $item->processing_fee_percentage = CommonHelper::processingFeePercentage();
         $item->status = $request->status;
         $item->expired_at = $request->filled('expired_at') ? $request->expired_at : null;
         $item->is_hot_deal = $request->boolean('is_hot_deal');

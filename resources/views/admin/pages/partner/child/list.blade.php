@@ -57,6 +57,12 @@
                                                 View
                                             </a>
                                         @endif
+                                        @if (request()->routeIs('admin.partner.institution.*'))
+                                            <a href="{{ route('admin.partner.institution.view', ['uuid' => $item->uuid]) }}"
+                                                class="menu-link px-3">
+                                                View
+                                            </a>
+                                        @endif
                                         @if (request()->routeIs('admin.partner.relationalManager.*'))
                                             <a href="{{ route('admin.partner.relationalManager.view', ['uuid' => $item->uuid]) }}"
                                                 class="menu-link px-3">
@@ -81,6 +87,12 @@
                                         @endif
                                         @if (request()->routeIs('admin.partner.distributor.*'))
                                             <a href="{{ route('admin.partner.distributor.edit', ['uuid' => $item->uuid]) }}"
+                                                class="menu-link px-3">
+                                                Edit
+                                            </a>
+                                        @endif
+                                        @if (request()->routeIs('admin.partner.institution.*'))
+                                            <a href="{{ route('admin.partner.institution.edit', ['uuid' => $item->uuid]) }}"
                                                 class="menu-link px-3">
                                                 Edit
                                             </a>

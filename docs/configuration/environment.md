@@ -36,6 +36,14 @@ Digio and WhatsApp provider secrets may live in DB settings or code/env beyond `
 
 `SettingServiceProvider` loads all app settings at boot. Fresh setup: temporarily comment register/boot bodies, migrate, then restore (root `README.md`).
 
+## App settings
+
+Rows live in `app_settings` and are edited at `/admin/system-configuration/system-settings` (`SettingController`).
+
+| Key | Meaning |
+|-----|---------|
+| `processing_fee_percentage` | Processing fee %. Configured in admin. Default 1. Min 1. Max 100. Applied automatically on new companies and deals. API clients do not send it. |
+
 ## PHP / Apache
 
 Root README recommends PHP 8.3, raised upload/memory limits, vhost to `public/`.

@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Enums\InvestorTypeEnum;
 use App\Enums\PartnerTypeEnum;
 use App\Enums\Utills\CodeVerificationTypeEnum;
 use App\Enums\Utills\DeviceTypeEnum;
@@ -20,10 +21,18 @@ use App\Models\PartnerModel;
 use App\Models\PortfolioModel;
 use App\Models\StartupMisModel;
 use App\Models\StartupModel;
+use App\Services\DematKycService;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
+use RuntimeException;
+use Throwable;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -141,6 +150,7 @@ class PartnerRepository
                     if ($request->is('api/*')) {
                         $partner->token = $partner->createToken('Partner login token')->plainTextToken;
                         UtillsHelper::firebaseLogin($partner->id, PartnerModel::class);
+                        $this->attachSelfInvestorId($partner);
                         return UtillsHelper::json(1, [
                             'message' => 'Login Success',
                             'data'  => $partner
@@ -285,6 +295,7 @@ class PartnerRepository
         $partner->is_secondary_access = $user->is_secondary_access;
         $partner->is_preipo_access = $user->is_preipo_access;
         $partner->save();
+        $this->createSelfInvestor($partner);
         return UtillsHelper::json(1, ['message' => 'Channel Partner Created']);
     }
 
@@ -551,6 +562,7 @@ class PartnerRepository
     {
         $request = request();
         $partner = PartnerModel::where('id', $request->user()->id)->with(['country', 'city', 'state'])->first();
+        $this->attachSelfInvestorId($partner);
         return UtillsHelper::json(
             1,
             [
@@ -721,7 +733,11 @@ class PartnerRepository
             'is_preipo_access'      => 'required|boolean',
         ];
 
-        if (in_array($request->partner_type, [PartnerTypeEnum::retailer->value, PartnerTypeEnum::distributor->value, PartnerTypeEnum::wealthmanager->value])) {
+        if ($request->is('api/*') && $request->partner_type == PartnerTypeEnum::institution->value) {
+            return UtillsHelper::json(0, ['message' => 'Institution cannot be created from the partner API']);
+        }
+
+        if (in_array($request->partner_type, [PartnerTypeEnum::retailer->value, PartnerTypeEnum::distributor->value, PartnerTypeEnum::wealthmanager->value, PartnerTypeEnum::institution->value])) {
             $rules['commission'] = 'required|numeric|between:0,99.99';
         }
 
@@ -733,7 +749,32 @@ class PartnerRepository
             $rules['parent_partner_id'] = 'required';
         }
 
-        $validator = Validator::make($request->all(), $rules);
+        $requiresSelfInvestorCml = $this->adminCreateRequiresSelfInvestorCml($request, $uuid);
+        $cmlMessages = [];
+        $cmlAttributes = [];
+        if ($requiresSelfInvestorCml) {
+            $rules['cml_file'] = 'required|file|mimes:pdf|max:10000';
+            $rules['dp_id'] = 'required';
+            $rules['client_id'] = 'required';
+            $rules['pan_no'] = 'required';
+            $rules['kyc_name'] = 'required';
+            $rules['account_number'] = 'required';
+            $rules['ifsc_code'] = 'required';
+            $rules['bank_name'] = 'nullable';
+            $rules['dob'] = 'nullable|date';
+            $cmlMessages = [
+                'cml_file.required' => 'The CML file is required.',
+                'cml_file.file' => 'The CML must be a valid file.',
+                'cml_file.mimes' => 'The CML must be a PDF file.',
+                'cml_file.max' => 'The CML file may not be greater than 10 MB.',
+            ];
+            $cmlAttributes = [
+                'kyc_name' => 'name',
+                'cml_file' => 'CML file',
+            ];
+        }
+
+        $validator = Validator::make($request->all(), $rules, $cmlMessages, $cmlAttributes);
 
         $validator->after(function ($validator) use ($request) {
             $accessFields = [
@@ -775,9 +816,20 @@ class PartnerRepository
         }
 
 
+        $inCmlTransaction = false;
+        if ($requiresSelfInvestorCml) {
+            DB::beginTransaction();
+            $inCmlTransaction = true;
+        }
+
+        try {
         if ($uuid) {
             $partner = PartnerModel::where('uuid', $uuid)->first();
             if (!$partner) {
+                if ($inCmlTransaction) {
+                    DB::rollBack();
+                    $inCmlTransaction = false;
+                }
                 if ($request->is('api/*')) {
                     return UtillsHelper::json(0, ['message' => 'Partner Not found']);
                 }
@@ -837,11 +889,34 @@ class PartnerRepository
         }
         $partner->save();
 
-
         if (!$uuid) {
+            $this->createSelfInvestor($partner);
+            if ($requiresSelfInvestorCml) {
+                $this->saveSelfInvestorDematKyc($partner);
+            }
             $message = 'Partner Created';
         } else {
             $message = 'Partner Updated';
+        }
+
+        if ($inCmlTransaction) {
+            DB::commit();
+            $inCmlTransaction = false;
+        }
+        } catch (Throwable $e) {
+            if (!$inCmlTransaction) {
+                throw $e;
+            }
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            Log::error('Partner create rolled back because CML KYC was not saved.', [
+                'error' => $e->getMessage(),
+            ]);
+            $failureMessage = $e instanceof RuntimeException
+                ? $e->getMessage()
+                : 'Partner could not be created because CML KYC was not saved.';
+            return redirect()->back()->withInput()->with('error', $failureMessage);
         }
 
         if ($request->is('api/*')) {
@@ -852,10 +927,147 @@ class PartnerRepository
             PartnerTypeEnum::retailer->value => 'admin.partner.retailers.list',
             PartnerTypeEnum::distributor->value => 'admin.partner.distributor.list',
             PartnerTypeEnum::wealthmanager->value => 'admin.partner.wealthmanager.list',
+            PartnerTypeEnum::institution->value => 'admin.partner.institution.list',
         ];
 
         $route = $routeMap[$request->partner_type] ?? 'admin.partner.relationalManager.list';
 
         return redirect()->route($route)->with('success', $message);
+    }
+
+    private function adminCreateRequiresSelfInvestorCml($request, $uuid): bool
+    {
+        if ($uuid || $request->is('api/*')) {
+            return false;
+        }
+
+        if ($request->input('partner_type') === PartnerTypeEnum::relationmanager->value) {
+            return false;
+        }
+
+        return in_array($request->input('partner_type'), [
+            PartnerTypeEnum::wealthmanager->value,
+            PartnerTypeEnum::distributor->value,
+            PartnerTypeEnum::retailer->value,
+            PartnerTypeEnum::institution->value,
+        ], true);
+    }
+
+    private function saveSelfInvestorDematKyc(PartnerModel $partner): void
+    {
+        if ($partner->type === PartnerTypeEnum::relationmanager->value) {
+            return;
+        }
+
+        $request = request();
+        $investor = InvestorModel::where('partner_id', $partner->id)->where('is_self', 1)->first();
+        if (!$investor) {
+            throw new RuntimeException('Self investor was not created, so CML KYC could not be saved.');
+        }
+
+        $cmlFile = $request->file('cml_file');
+        if (!$cmlFile) {
+            throw new RuntimeException('The CML file is required.');
+        }
+
+        $result = (new DematKycService())->saveDematKyc($investor->id, [
+            'dp_id' => $request->input('dp_id'),
+            'client_id' => $request->input('client_id'),
+            'pan_no' => $request->input('pan_no'),
+            'name' => $request->input('kyc_name'),
+            'account_number' => $request->input('account_number'),
+            'ifsc_code' => $request->input('ifsc_code'),
+            'bank_name' => $request->input('bank_name'),
+            'dob' => $request->input('dob'),
+        ], $cmlFile);
+
+        if (empty($result['success'])) {
+            $message = $result['message'] ?? 'Failed to save KYC details.';
+            if (!empty($result['error'])) {
+                $message .= ': ' . $result['error'];
+            }
+            throw new RuntimeException($message);
+        }
+    }
+
+    public function createSelfInvestor(PartnerModel $partner): void
+    {
+        if ($partner->type === PartnerTypeEnum::relationmanager->value) {
+            return;
+        }
+
+        $partner->refresh();
+
+        if (InvestorModel::where('partner_id', $partner->id)->where('is_self', 1)->exists()) {
+            return;
+        }
+
+        try {
+            $investor = new InvestorModel();
+            $investor->investor_type = InvestorTypeEnum::individual->value;
+            $investor->name = $partner->name;
+            $investor->mobile_country_code = $partner->mobile_country_code ?: '91';
+            $investor->mobile_number = $partner->mobile_number;
+            $investor->email = $partner->email;
+            $investor->gender = $partner->gender;
+            $investor->partner_id = $partner->id;
+            $investor->is_self = 1;
+            $investor->registration_step = '3';
+            $investor->is_deleted = '0';
+            if (!empty($partner->password) && Schema::hasColumn($investor->getTable(), 'password')) {
+                $investor->password = $partner->password;
+            }
+            if (Schema::hasColumn($investor->getTable(), 'is_primary_access')) {
+                $investor->is_primary_access = $partner->is_primary_access ? 1 : 0;
+            }
+            if (Schema::hasColumn($investor->getTable(), 'is_secondary_access')) {
+                $investor->is_secondary_access = $partner->is_secondary_access ? 1 : 0;
+            }
+            if (Schema::hasColumn($investor->getTable(), 'is_preipo_access')) {
+                $investor->is_preipo_access = $partner->is_preipo_access ? 1 : 0;
+            }
+            if ($partner->created_by) {
+                $investor->created_by = $partner->created_by;
+                $investor->updated_by = $partner->updated_by ?: $partner->created_by;
+            }
+            $investor->save();
+        } catch (UniqueConstraintViolationException $e) {
+            $this->logSkippedSelfInvestor($partner);
+        } catch (QueryException $e) {
+            $sqlState = $e->errorInfo[0] ?? null;
+            $driverCode = (int) ($e->errorInfo[1] ?? 0);
+            if ($sqlState === '23000' || $driverCode === 1062) {
+                $this->logSkippedSelfInvestor($partner);
+                return;
+            }
+            throw $e;
+        }
+    }
+
+    private function attachSelfInvestorId(?PartnerModel $partner): void
+    {
+        if (!$partner) {
+            return;
+        }
+
+        if ($partner->type === PartnerTypeEnum::relationmanager->value) {
+            $partner->setAttribute('self_investor_id', null);
+            return;
+        }
+
+        $partner->setAttribute(
+            'self_investor_id',
+            InvestorModel::where('partner_id', $partner->id)->where('is_self', 1)->value('id')
+        );
+    }
+
+    private function logSkippedSelfInvestor(PartnerModel $partner): void
+    {
+        Log::warning('Skipped self investor for partner ' . $partner->id . ' because mobile or email already belongs to another investor.', [
+            'partner_id' => $partner->id,
+            'partner_type' => $partner->type,
+            'mobile_number' => $partner->mobile_number,
+            'email' => $partner->email,
+        ]);
     }
 }

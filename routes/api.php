@@ -15,7 +15,9 @@ use App\Http\Controllers\Api\V1\Investor\CommonController as ApiV1InvestorCommon
 use App\Http\Controllers\Api\V1\Investor\CommonKycController as ApiV1InvestorCommonKycController;
 use App\Http\Controllers\Api\V1\Startup\StartupController as ApiV1StartupController;
 use App\Http\Controllers\Api\V2\Business\CommonController as ApiV2BusinessCommonController;
+use App\Http\Controllers\Api\V2\Business\CompanyController as ApiV2BusinessCompanyController;
 use App\Http\Controllers\Api\V2\Business\EnquiryController as ApiV2BusinessEnquiryController;
+use App\Http\Controllers\Api\V2\Business\KycController as ApiV2BusinessKycController;
 use App\Http\Controllers\Api\V2\Business\PortfolioController as ApiV2BusinessPortfolioController;
 use App\Http\Controllers\Api\V2\Investor\AuthController as ApiV2InvestorAuthController;
 use App\Http\Controllers\Api\V2\Investor\CommonController as ApiV2InvestorCommonController;
@@ -561,13 +563,41 @@ Route::group(['middleware' => [ApiHeaderAuthMiddleware::class]], function () {
                     Route::get('detail', [ApiV2BusinessCommonController::class, 'companyDetail']);
                     Route::get('list', [ApiV2BusinessCommonController::class, 'companyList']);
                 });
+
+                Route::prefix('institution')->name('institution.')->group(function () {
+                    Route::prefix('company')->name('company.')->group(function () {
+                        Route::post('check-duplicate', [ApiV2BusinessCompanyController::class, 'checkDuplicate']);
+                        Route::post('', [ApiV2BusinessCompanyController::class, 'create']);
+                        Route::get('sectors', [ApiV2BusinessCompanyController::class, 'sectors'])->name('sectors');
+                        Route::get('list', [ApiV2BusinessCompanyController::class, 'list'])->name('list');
+                        Route::get('list-lite', [ApiV2BusinessCompanyController::class, 'listLite'])->name('list-lite');
+                        Route::get('detail', [ApiV2BusinessCompanyController::class, 'detail'])->name('detail');
+                        Route::get('my-submissions', [ApiV2BusinessCompanyController::class, 'mySubmissions'])->name('my-submissions');
+                        Route::post('promoters', [ApiV2BusinessCompanyController::class, 'savePromoters'])->name('promoters');
+                        Route::post('shareholders', [ApiV2BusinessCompanyController::class, 'saveShareholders'])->name('shareholders');
+                        Route::prefix('deals')->name('deals.')->group(function () {
+                            Route::post('bulk', [ApiV2BusinessCompanyController::class, 'createDealsBulk']);
+                            Route::post('', [ApiV2BusinessCompanyController::class, 'createDeal']);
+                            Route::get('', [ApiV2BusinessCompanyController::class, 'listDeals']);
+                            Route::post('update', [ApiV2BusinessCompanyController::class, 'updateDeal']);
+                            Route::post('delete', [ApiV2BusinessCompanyController::class, 'deleteDeal']);
+                        });
+                    });
+                });
                 Route::prefix('startup')->name('startup.')->group(function () {
                     Route::get('detail', [ApiV2BusinessCommonController::class, 'startupDetail']);
                     Route::get('list', [ApiV2BusinessCommonController::class, 'startupList']);
                 });
 
                 Route::prefix('investor')->name('investor.')->group(function () {
+                    Route::get('', [ApiV2BusinessCommonController::class, 'investorList']);
+                    Route::post('', [ApiV2BusinessCommonController::class, 'investorCreate'])->name('create');
                     Route::get('detail', [ApiV2BusinessCommonController::class, 'investorDetail']);
+
+                    Route::prefix('kyc')->name('kyc.')->group(function () {
+                        Route::post('cml/read', [ApiV2BusinessKycController::class, 'readCml'])->name('cml.read');
+                        Route::post('cml/save', [ApiV2BusinessKycController::class, 'saveCml'])->name('cml.save');
+                    });
                 });
 
                 Route::prefix('primary')->name('primary.')->group(function () {

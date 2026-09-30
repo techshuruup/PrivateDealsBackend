@@ -14,8 +14,10 @@ class CompanyDealModel extends Model
         'uuid',
         'company_id',
         'created_by_seller_id',
+        'created_by_partner_id',
         'available_quantity',
         'share_price',
+        'base_price',
         'minimum_qty',
         'processing_fee_percentage',
         'status',
@@ -29,6 +31,7 @@ class CompanyDealModel extends Model
         'id',
         'company_id',
         'created_by_seller_id',
+        'created_by_partner_id',
         'is_deleted',
         'created_at',
         'updated_at',
@@ -37,6 +40,7 @@ class CompanyDealModel extends Model
     protected $casts = [
         'available_quantity' => 'integer',
         'share_price' => 'float',
+        'base_price' => 'float',
         'minimum_qty' => 'integer',
         'processing_fee_percentage' => 'float',
         'expired_at' => 'datetime',
@@ -60,6 +64,11 @@ class CompanyDealModel extends Model
     public function createdBySeller(): BelongsTo
     {
         return $this->belongsTo(SellerMasterModel::class, 'created_by_seller_id');
+    }
+
+    public function createdByPartner(): BelongsTo
+    {
+        return $this->belongsTo(PartnerModel::class, 'created_by_partner_id');
     }
 
     public function scopeNotDeleted($query)

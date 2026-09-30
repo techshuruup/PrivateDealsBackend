@@ -102,11 +102,10 @@
                                 @include('admin.partials.form.input-error-message', ['key' => 'minimum_qty'])
                             </div>
                             <div class="fv-row w-100 flex-md-root">
-                                <label class="required form-label">Processing Fee (%)</label>
-                                <input placeholder="e.g. 2.00" name="processing_fee_percentage"
-                                    value="{{ old('processing_fee_percentage', $item->processing_fee_percentage) }}"
-                                    class="form-control mb-2 input" type="number" min="0" max="100" step="0.01" required>
-                                @include('admin.partials.form.input-error-message', ['key' => 'processing_fee_percentage'])
+                                <label class="form-label">Processing Fee (%)</label>
+                                <input value="{{ CommonHelper::processingFeePercentage() }}"
+                                    class="form-control mb-2" type="text" readonly>
+                                <div class="form-text">Set in App Settings. Saving this deal stores the current admin processing fee (1–100, default 1).</div>
                             </div>
                         </div>
                         <div class="d-flex flex-wrap gap-10 mb-5">

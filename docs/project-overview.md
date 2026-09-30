@@ -7,7 +7,7 @@
 1. **Pre-IPO / unlisted equity** — browse companies, buy/sell unlisted shares, track portfolio and prices.
 2. **Startup primary fundraising** — investors commit to startup rounds; paperwork (SSA, offer letter, MGT-14, PAS-3, SHA) and payments are tracked through statuses.
 3. **Secondary market** — investor-to-investor (or related) share transfers with ROFR, escrow, and share-receipt flows.
-4. **Partner / business network** — wealth managers, distributors, retailers, relation managers, and (target) **sellers** as a partner role. Partners create investors and invest for them. Sellers register companies that are **live immediately** (no approval; block if company already exists).
+4. **Partner / business network** — wealth managers, distributors, retailers, relation managers, and (target) **sellers** as a partner role. Partners create investors and invest for them. Each new Wealth Manager, Distributor, Retailer, and Institution gets one self investor for their own orders, hidden from the client list. Admin create for those four types also saves CML KYC on that self investor; if KYC fails, the partner is rolled back. Relation Manager does not get CML or a self investor; they use the parent partner’s investor. Sellers register companies that are **live immediately** (no approval; block if company already exists).
 5. **Startup operators** — startups manage rounds, MIS, updates, cap table related flows (web; some routes historically commented).
 6. **Admin operations** — can see/monitor master data, KYC, transactions, broadcasts, CMS, settings.
 
@@ -25,7 +25,7 @@ Brand / app name in env: `APP_NAME` (example: `PrivateDeals V1 Alpha`).
 |-------|------------|-----------|-----------|--------|
 | Admin | `UserAdminModel` (`user_admin`) | `admin` (session) | — | Spatie-style permission strings via `hasPermission` |
 | Investor | `InvestorModel` (`investor`) | `investor` | `investor-api-guard` (Sanctum) | MPIN, family profiles, KYC |
-| Partner (Business) | `PartnerModel` (`partner`) | `partner` | `partner-api-guard` | Types: WM, Distributor, Retailer, RM; **Seller** = target partner role (code later). Partners create investors & invest for them. |
+| Partner (Business) | `PartnerModel` (`partner`) | `partner` | `partner-api-guard` | Types: WM, Distributor, Retailer, RM, **Institution**. Admin creates Institution the same way as Distributor. Institution can create an unlisted or secondary company that is approved and live for partners immediately, and can use the Institution company catalog, submissions, promoters, shareholders, and deals APIs. Seller share-price quotes stay on the seller app. **Seller** remains a separate seller-app account. Partners create investors and invest for them. Each new WM, Distributor, Retailer, and Institution gets one self investor (`investor.is_self`) for their own orders, hidden from client lists. Admin create for those four types saves CML KYC on that self investor and rolls the partner back if KYC fails. Login and profile include `self_investor_id`. Relation Manager does not get CML or a self investor and uses the parent partner’s investor. |
 | Startup | `StartupModel` (`startup`) | `startup` | `startup-api-guard` | Limited API surface today |
 | Guest / public | — | — | Header `headtoken` only | Marketing site + public master APIs |
 

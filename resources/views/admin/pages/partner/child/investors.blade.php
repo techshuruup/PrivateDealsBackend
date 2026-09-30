@@ -14,7 +14,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach ($partner->investor as $invItem)
+                @foreach ($partner->investor->where('is_self', 0) as $invItem)
                     <tr>
                         <td>{{ $invItem->name }}</td>
                         <td>{{ $invItem->mobile_number }}</td>

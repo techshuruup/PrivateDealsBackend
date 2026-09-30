@@ -224,7 +224,7 @@ Business + Investor V2 `company/detail` eager-load non-deleted deals as `deals`:
     "available_quantity": 1000,
     "share_price": 125.5,
     "minimum_qty": 10,
-    "processing_fee_percentage": 2.0,
+    "processing_fee_percentage": 1,
     "status": "available"
   }
 ]

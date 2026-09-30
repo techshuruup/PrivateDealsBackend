@@ -2,7 +2,7 @@
 
 Editable PlantUML: [plantuml/use-case-transaction.puml](plantuml/use-case-transaction.puml)
 
-**Mapping:** Partner ≈ Wealth Manager app · Institution ≈ Private Deal Seller app. Seller in a deal may be Partner or Institution.
+**Mapping:** Partner ≈ Wealth Manager app · Institution in this diagram ≈ Private Deal Seller app. Seller in a deal may be Partner or Institution. This diagram label is not the `partner.type` value `Institution` (an admin-created partner account).
 
 ---
 

@@ -41,6 +41,9 @@ flowchart TB
 
 - [v1.md](v1.md) — V1 surfaces
 - [v2.md](v2.md) — V2 surfaces
+- [app-handoff.md](app-handoff.md) — short start-here for the app team (Hoppscotch collection + what to build)
+- [institution.md](institution.md) — Institution partner company submit and deals
+- [partner.md](partner.md) — Partner investor list, investor create, CML KYC, and `self_investor_id` on existing login and profile
 - [webhooks-third-party.md](webhooks-third-party.md)
 - Focused Pre-IPO payload notes: [preipo-v2-unlisted-secondary-api-changes.md](../preipo-v2-unlisted-secondary-api-changes.md)
 

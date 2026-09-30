@@ -566,6 +566,30 @@
                     <div class="card card-flush py-4">
                         <div class="card-header">
                             <div class="card-title">
+                                <h2>Processing Fee</h2>
+                            </div>
+                        </div>
+                        <div class="card-body pt-0">
+                            <div class="d-flex flex-wrap gap-5 mb-5">
+                                <div class="fv-row w-100 flex-md-root fv-plugins-icon-container">
+                                    <label class="required form-label">Processing Fee (%)</label>
+                                    <input type="number" name="processing_fee_percentage" class="form-control mb-2"
+                                        placeholder="Processing Fee (%)" min="1" max="100" step="0.01"
+                                        value="{{ old('processing_fee_percentage', CommonHelper::appSettings('processing_fee_percentage') !== '' ? CommonHelper::appSettings('processing_fee_percentage') : 1) }}">
+                                    <div class="form-text">Used everywhere a processing fee is applied. Integer or decimal from 1 to 100. Default 1.</div>
+                                    @if ($errors->has('processing_fee_percentage'))
+                                    <div
+                                        class="fv-plugins-message-container fv-plugins-message-container--enabled invalid-feedback">
+                                        {{ $errors->first('processing_fee_percentage') }}</div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card card-flush py-4">
+                        <div class="card-header">
+                            <div class="card-title">
                                 <h2>Pre Ipo News Settings</h2>
                             </div>
                         </div>

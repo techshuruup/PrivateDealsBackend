@@ -80,7 +80,7 @@ class TransactionCalculationHelper
                 'masterCouponId'          => $masterCouponId,
             ]);
             $investmentAmount = $finalSharePrice * $quantity;
-            $processingFeePercentage = $company->processing_fee_percentage ?? 2.00;
+            $processingFeePercentage = $company->processing_fee_percentage ?? CommonHelper::processingFeePercentage();
             $processingFee           = ($investmentAmount * $processingFeePercentage) / 100;
             $isFreeProcessingFee     = (int) ($company->is_free_processing_fee ?? 0);
 

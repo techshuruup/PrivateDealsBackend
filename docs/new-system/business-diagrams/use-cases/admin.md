@@ -17,6 +17,7 @@ flowchart LR
     UC2([Create Seller])
     UC3([Create Distributor])
     UC4([Create Retailer])
+    UC8([Create Institution])
     UC5([Assign WM investment areas])
     UC6([Create company])
     UC7([View all data])
@@ -26,6 +27,7 @@ flowchart LR
   Admin --> UC2
   Admin --> UC3
   Admin --> UC4
+  Admin --> UC8
   Admin --> UC5
   Admin --> UC6
   Admin --> UC7
@@ -37,10 +39,11 @@ flowchart LR
 
 | Use case | Notes |
 |----------|--------|
-| Create Wealth Manager | Yes |
+| Create Wealth Manager | Yes — CML KYC is required and saved on the self investor. If KYC fails, creation rolls back. |
 | Create Seller | Yes |
-| Create Distributor | Yes — parent **not** mandatory |
-| Create Retailer | Yes — parent **not** mandatory |
+| Create Distributor | Yes — parent **not** mandatory. CML KYC is required and saved on the self investor. |
+| Create Retailer | Yes — parent **not** mandatory. CML KYC is required and saved on the self investor. |
+| Create Institution | Yes — same admin form as Distributor, optional Wealth Manager parent, plus required CML KYC saved on the self investor. Institution can create an unlisted or secondary company that is approved and live for partners immediately, and can use the Institution company catalog, submissions, promoters, shareholders, and deals APIs. Seller share-price quotes stay on the seller app. Partner API cannot create the Institution account. |
 | Assign WM investment areas | Primary / LP Secondary / Unlisted — one, two, or all |
 | Create company | Shared company records |
 | View all data | Yes |

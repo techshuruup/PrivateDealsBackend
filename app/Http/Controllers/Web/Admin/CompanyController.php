@@ -720,7 +720,6 @@ class CompanyController extends Controller
             'negative_keywords' => 'nullable|string',
             // 'min_investment_type' => 'required|string',
             'min_investment_amount' => 'required|numeric',
-            'commission' => 'required|numeric',
             'processing_fee_percentage' => 'required|numeric|between:0,100',
             // 'category'   => 'required',
             'category'   => 'nullable',
@@ -776,8 +775,7 @@ class CompanyController extends Controller
             // $company->min_investment_type = $request->input('min_investment_type');
             $company->final_min_investment_amount = $request->input('min_investment_amount');
             $company->min_investment_type = MinimumInvestmentTypeEnum::quantity->value;
-            $company->commission = $request->input('commission');
-            $company->processing_fee_percentage = $request->input('processing_fee_percentage', 2.00);
+            $company->processing_fee_percentage = $request->input('processing_fee_percentage', CommonHelper::processingFeePercentage());
             $company->category = $request->filled('category') ? $request->input('category') : null;
             $company->type = $request->input('type', CompanyTypeEnum::unlisted->value);
             // Flags
@@ -855,8 +853,6 @@ class CompanyController extends Controller
             'negative_keywords' => 'nullable|string',
             // 'min_investment_type' => 'required|string',
             'min_investment_amount' => 'required|numeric',
-            'commission' => 'required|numeric',
-            'processing_fee_percentage' => 'required|numeric|between:0,100',
             // 'category'   => 'required',
             'category'   => 'nullable',
             'type'       => 'nullable|in:unlisted,secondary',
@@ -913,8 +909,9 @@ class CompanyController extends Controller
             $company->final_min_investment_amount = $request->input('min_investment_amount');
             $company->min_investment_type = MinimumInvestmentTypeEnum::quantity->value;
 
-            $company->commission = $request->input('commission');
-            $company->processing_fee_percentage = $request->input('processing_fee_percentage', 2.00);
+            $processingFee = CommonHelper::processingFeePercentage();
+            $company->commission = $processingFee;
+            $company->processing_fee_percentage = $processingFee;
             $company->category = $request->filled('category') ? $request->input('category') : null;
             $company->type = $request->input('type', CompanyTypeEnum::unlisted->value);
             // Flags
@@ -1641,8 +1638,15 @@ class CompanyController extends Controller
         setPageTitle('Pending Seller Companies');
         $data['list'] = CompanyModel::where('is_deleted', '0')
             ->where('approval_status', CompanyApprovalStatusEnum::pending->value)
-            ->whereNotNull('submitted_by_seller_id')
-            ->with(['sector:id,name', 'submittedBySeller:id,company_name,mobile_number'])
+            ->where(function ($query) {
+                $query->whereNotNull('submitted_by_seller_id')
+                    ->orWhereNotNull('submitted_by_partner_id');
+            })
+            ->with([
+                'sector:id,name',
+                'submittedBySeller:id,company_name,mobile_number',
+                'submittedByPartner:id,name,mobile_number',
+            ])
             ->orderByDesc('id')
             ->get();
 

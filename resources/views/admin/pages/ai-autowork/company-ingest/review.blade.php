@@ -289,7 +289,7 @@
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label required">Processing fee %</label>
-                                    <input type="number" step="0.01" name="processing_fee_percentage" class="form-control" value="{{ old('processing_fee_percentage', $item->processing_fee_percentage ?? 2) }}" @disabled(!$isPending)>
+                                    <input type="number" step="0.01" name="processing_fee_percentage" class="form-control" value="{{ old('processing_fee_percentage', $item->processing_fee_percentage ?? CommonHelper::processingFeePercentage()) }}" @disabled(!$isPending)>
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label required">About</label>

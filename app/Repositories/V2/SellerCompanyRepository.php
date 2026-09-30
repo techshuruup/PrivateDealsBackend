@@ -20,6 +20,7 @@ use App\Models\CompanyShareHolderModel;
 use App\Models\CompanyShareHolderPercentageModel;
 use App\Models\MasterSectorsModel;
 use App\Models\SellerCompanySharePriceModel;
+use App\Services\CompanyDealPricing;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -117,8 +118,17 @@ class SellerCompanyRepository
 
     public function create(): JsonResponse
     {
+        return $this->persistPendingCompany(request()->user()->id, null);
+    }
+
+    public function createForInstitution(int $partnerId): JsonResponse
+    {
+        return $this->persistPendingCompany(null, $partnerId);
+    }
+
+    private function persistPendingCompany(?int $sellerId, ?int $partnerId): JsonResponse
+    {
         $request = request();
-        $seller = $request->user();
 
         $validation = Validator::make($request->all(), [
             'type' => ['required', Rule::enum(CompanyTypeEnum::class)],
@@ -128,8 +138,6 @@ class SellerCompanyRepository
             'sector' => 'required|integer|exists:master_sectors,id',
             'about' => 'required|string',
             'min_investment_amount' => 'required|numeric|min:0',
-            'commission' => 'nullable|numeric|min:0',
-            'processing_fee_percentage' => 'nullable|numeric|between:0,100',
             'lot_size' => 'required|string|max:255',
             'market_cap' => 'required|numeric|min:0',
             'pe_ratio' => 'required|numeric',
@@ -170,10 +178,7 @@ class SellerCompanyRepository
             ]);
         }
 
-        $commission = $request->filled('commission') ? (float) $request->commission : 2.00;
-        $processingFee = $request->filled('processing_fee_percentage')
-            ? (float) $request->processing_fee_percentage
-            : 2.00;
+        $processingFee = CommonHelper::processingFeePercentage();
 
         try {
             DB::beginTransaction();
@@ -187,12 +192,17 @@ class SellerCompanyRepository
             $company->type = $request->type;
             $company->status = 0;
             $company->is_deleted = 0;
-            $company->approval_status = CompanyApprovalStatusEnum::pending->value;
-            $company->submitted_by_seller_id = $seller->id;
+            $company->approval_status = CompanyApprovalStatusEnum::approved->value;
+            if ($sellerId !== null) {
+                $company->submitted_by_seller_id = $sellerId;
+            }
+            if ($partnerId !== null) {
+                $company->submitted_by_partner_id = $partnerId;
+            }
             $company->final_min_investment_amount = $request->min_investment_amount;
             $company->min_investment_amount = $request->min_investment_amount;
             $company->min_investment_type = MinimumInvestmentTypeEnum::quantity->value;
-            $company->commission = $commission;
+            $company->commission = $processingFee;
             $company->processing_fee_percentage = $processingFee;
             $company->is_free_processing_fee = 1;
             $company->alternative_names = $this->cleanCommaList($request->input('alternative_names'));
@@ -229,7 +239,7 @@ class SellerCompanyRepository
             $company->load(['sector:id,name', 'fundamentals']);
 
             return UtillsHelper::json(1, [
-                'message' => 'Company submitted successfully. Awaiting admin approval.',
+                'message' => 'Company created successfully. It is live.',
                 'data' => $company,
             ]);
         } catch (\Throwable $e) {
@@ -284,6 +294,16 @@ class SellerCompanyRepository
 
     public function list(): JsonResponse
     {
+        return $this->catalogList(null);
+    }
+
+    public function listForInstitution(int $partnerId): JsonResponse
+    {
+        return $this->catalogList($partnerId);
+    }
+
+    private function catalogList(?int $partnerId): JsonResponse
+    {
         $request = request();
         $validation = Validator::make($request->all(), [
             'category' => 'nullable|in:All,' . implode(',', array_column(PreIpoCategoryEnum::cases(), 'value')),
@@ -327,7 +347,8 @@ class SellerCompanyRepository
                 'min_investment_type',
                 'min_investment_amount',
                 'sector_id',
-                'submitted_by_seller_id'
+                'submitted_by_seller_id',
+                'submitted_by_partner_id'
             )
             ->with([
                 'sector' => fn ($q) => $q->select('id', 'name', 'url_slug'),
@@ -382,7 +403,7 @@ class SellerCompanyRepository
         }
 
         $total = (clone $query)->count();
-        $sellerId = (int) $request->user()->id;
+        $sellerId = $partnerId === null ? (int) $request->user()->id : 0;
         $companies = $query
             ->orderByRaw('list_order IS NULL')
             ->orderBy('list_order', 'asc')
@@ -390,12 +411,12 @@ class SellerCompanyRepository
             ->skip($skip)
             ->take($take)
             ->get()
-            ->each(function (CompanyModel $company) use ($sellerId) {
-                $company->setAttribute(
-                    'is_editable',
-                    (int) $company->submitted_by_seller_id === $sellerId
-                );
-                $company->makeHidden(['submitted_by_seller_id']);
+            ->each(function (CompanyModel $company) use ($sellerId, $partnerId) {
+                $editable = $partnerId !== null
+                    ? (int) $company->submitted_by_partner_id === $partnerId
+                    : (int) $company->submitted_by_seller_id === $sellerId;
+                $company->setAttribute('is_editable', $editable);
+                $company->makeHidden(['submitted_by_seller_id', 'submitted_by_partner_id']);
             });
 
         return UtillsHelper::json(1, [
@@ -408,6 +429,16 @@ class SellerCompanyRepository
     }
 
     public function detail(): JsonResponse
+    {
+        return $this->companyDetail(null);
+    }
+
+    public function detailForInstitution(int $partnerId): JsonResponse
+    {
+        return $this->companyDetail($partnerId);
+    }
+
+    private function companyDetail(?int $partnerId): JsonResponse
     {
         $request = request();
         $validation = Validator::make($request->all(), [
@@ -444,8 +475,11 @@ class SellerCompanyRepository
             return UtillsHelper::json(0, ['message' => 'Company not found']);
         }
 
-        $isOwner = (int) $company->submitted_by_seller_id === (int) $request->user()->id
-            && $company->approval_status !== CompanyApprovalStatusEnum::rejected->value;
+        $isOwner = $partnerId !== null
+            ? (int) $company->submitted_by_partner_id === $partnerId
+                && $company->approval_status !== CompanyApprovalStatusEnum::rejected->value
+            : (int) $company->submitted_by_seller_id === (int) $request->user()->id
+                && $company->approval_status !== CompanyApprovalStatusEnum::rejected->value;
         $isApprovedCatalog = $company->approval_status === CompanyApprovalStatusEnum::approved->value;
 
         if (!$isApprovedCatalog && !$isOwner) {
@@ -486,6 +520,16 @@ class SellerCompanyRepository
 
     public function mySubmissions(): JsonResponse
     {
+        return $this->submissionList(null);
+    }
+
+    public function mySubmissionsForInstitution(int $partnerId): JsonResponse
+    {
+        return $this->submissionList($partnerId);
+    }
+
+    private function submissionList(?int $partnerId): JsonResponse
+    {
         $request = request();
         $validation = Validator::make($request->all(), [
             'type' => 'nullable|in:' . implode(',', array_column(CompanyTypeEnum::cases(), 'value')),
@@ -499,8 +543,13 @@ class SellerCompanyRepository
         }
 
         $query = CompanyModel::where('is_deleted', '0')
-            ->where('submitted_by_seller_id', $request->user()->id)
             ->with(['sector:id,name,url_slug', 'fundamentals']);
+
+        if ($partnerId !== null) {
+            $query->where('submitted_by_partner_id', $partnerId);
+        } else {
+            $query->where('submitted_by_seller_id', $request->user()->id);
+        }
 
         if ($request->filled('type')) {
             $query->where('type', $request->type);
@@ -686,15 +735,17 @@ class SellerCompanyRepository
         $deal->available_quantity = $request->filled('available_quantity')
             ? (int) $request->available_quantity
             : 0;
-        $deal->share_price = $request->share_price;
         $deal->minimum_qty = $request->minimum_qty;
-        $deal->processing_fee_percentage = 0;
+        app(CompanyDealPricing::class)->stampFromBase($deal, $request->share_price);
         $deal->status = $request->filled('status')
             ? $request->status
             : CompanyDealStatusEnum::available->value;
         $deal->is_hot_deal = $request->boolean('is_hot_deal');
         $deal->expired_at = $request->filled('expired_at') ? $request->input('expired_at') : null;
-        $deal->save();
+        DB::transaction(function () use ($deal) {
+            $deal->save();
+            $this->recordNonHotDealHistory($deal);
+        });
 
         return UtillsHelper::json(1, [
             'message' => 'Deal created',
@@ -756,6 +807,296 @@ class SellerCompanyRepository
         }
 
         $deal = $this->ownSellerDeal($request->uuid);
+        if (!$deal) {
+            return UtillsHelper::json(0, ['message' => 'Deal not found']);
+        }
+
+        $deal->is_deleted = true;
+        $deal->save();
+
+        return UtillsHelper::json(1, [
+            'message' => 'Deal deleted',
+        ]);
+    }
+
+    public function listInstitutionDeals(int $partnerId): JsonResponse
+    {
+        $request = request();
+        $validation = Validator::make($request->all(), [
+            'company_id' => 'nullable|integer',
+            'type' => 'nullable|in:All,' . implode(',', array_column(CompanyTypeEnum::cases(), 'value')),
+            'skip' => 'nullable|integer|min:0',
+            'take' => 'nullable|integer|min:1',
+        ]);
+        if ($validation->fails()) {
+            return UtillsHelper::json(0, ['message' => $validation->errors()->first()]);
+        }
+
+        $type = $request->input('type', 'All');
+        $query = CompanyDealModel::notDeleted()
+            ->where('created_by_partner_id', $partnerId)
+            ->whereHas('company', function ($q) use ($type) {
+                $q->where('is_deleted', '0')
+                    ->approved();
+
+                if ($type === 'All') {
+                    $q->whereIn('type', [
+                        CompanyTypeEnum::unlisted->value,
+                        CompanyTypeEnum::secondary->value,
+                    ]);
+                } else {
+                    $q->where('type', $type);
+                }
+            })
+            ->with([
+                'company' => fn ($q) => $q->select('id', 'brand_name', 'slug', 'logo', 'type'),
+            ])
+            ->orderByDesc('id');
+
+        if ($request->filled('company_id')) {
+            $company = $this->approvedDealCompany((int) $request->company_id);
+            if (!$company) {
+                return UtillsHelper::json(0, ['message' => 'Company not found']);
+            }
+            $query->where('company_id', $company->id);
+        }
+
+        $skip = max(0, (int) $request->input('skip', 0));
+        $take = (int) $request->input('take', CommonHelper::appSettings('app_pagination_limit'));
+        if ($take < 1) {
+            $take = 15;
+        }
+
+        $total = (clone $query)->count();
+        $deals = $query
+            ->skip($skip)
+            ->take($take)
+            ->get()
+            ->map(fn (CompanyDealModel $deal) => $this->formatInstitutionDeal($deal, $partnerId))
+            ->values();
+
+        return UtillsHelper::json(1, [
+            'message' => 'Deal list',
+            'data' => $deals,
+            'total' => $total,
+            'skip' => $skip,
+            'take' => $take,
+        ]);
+    }
+
+    public function createInstitutionDeal(int $partnerId): JsonResponse
+    {
+        $request = request();
+        $statusValues = implode(',', array_column(CompanyDealStatusEnum::cases(), 'value'));
+        $dealTypeValues = implode(',', array_column(CompanyDealTypeEnum::cases(), 'value'));
+        $validation = Validator::make($request->all(), [
+            'company_id' => 'required|integer',
+            'deal_type' => 'required|in:' . $dealTypeValues,
+            'available_quantity' => 'required|integer|min:0',
+            'share_price' => 'required|numeric|min:0',
+            'minimum_qty' => 'required|integer|min:1',
+            'status' => 'nullable|in:' . $statusValues,
+            'is_hot_deal' => 'nullable|boolean',
+            'expired_at' => 'nullable|date_format:Y-m-d H:i:s',
+        ]);
+        if ($validation->fails()) {
+            return UtillsHelper::json(0, ['message' => $validation->errors()->first()]);
+        }
+
+        $company = $this->approvedDealCompany((int) $request->company_id);
+        if (!$company) {
+            return UtillsHelper::json(0, ['message' => 'Company not found']);
+        }
+
+        $deal = new CompanyDealModel();
+        $deal->company_id = $company->id;
+        $deal->created_by_partner_id = $partnerId;
+        $deal->created_by_seller_id = null;
+        $deal->deal_type = $request->deal_type;
+        $deal->available_quantity = (int) $request->available_quantity;
+        $deal->minimum_qty = $request->minimum_qty;
+        app(CompanyDealPricing::class)->stampFromBase($deal, $request->share_price);
+        $deal->status = $request->filled('status')
+            ? $request->status
+            : CompanyDealStatusEnum::available->value;
+        $deal->is_hot_deal = $request->boolean('is_hot_deal');
+        $deal->expired_at = $request->filled('expired_at') ? $request->input('expired_at') : null;
+        DB::transaction(function () use ($deal) {
+            $deal->save();
+            $this->recordNonHotDealHistory($deal);
+        });
+
+        return UtillsHelper::json(1, [
+            'message' => 'Deal created',
+            'data' => $this->formatInstitutionDeal($deal->fresh(['company:id,brand_name,slug,logo,type']), $partnerId),
+        ]);
+    }
+
+    public function createInstitutionDealsBulk(int $partnerId): JsonResponse
+    {
+        $request = request();
+        $sellRows = $request->exists('sell') ? $request->input('sell') : [];
+        $buyRows = $request->exists('buy') ? $request->input('buy') : [];
+
+        if ($sellRows === null) {
+            $sellRows = [];
+        }
+        if ($buyRows === null) {
+            $buyRows = [];
+        }
+        if (!is_array($sellRows)) {
+            return UtillsHelper::json(0, ['message' => 'sell must be an array.']);
+        }
+        if (!is_array($buyRows)) {
+            return UtillsHelper::json(0, ['message' => 'buy must be an array.']);
+        }
+
+        $prepared = [];
+        foreach ($sellRows as $index => $row) {
+            $parsed = $this->parseBulkDealRow($row, 'sell', (int) $index);
+            if ($parsed === null) {
+                continue;
+            }
+            if (is_string($parsed)) {
+                return UtillsHelper::json(0, ['message' => $parsed]);
+            }
+            $prepared[] = $parsed;
+        }
+        foreach ($buyRows as $index => $row) {
+            $parsed = $this->parseBulkDealRow($row, 'buy', (int) $index);
+            if ($parsed === null) {
+                continue;
+            }
+            if (is_string($parsed)) {
+                return UtillsHelper::json(0, ['message' => $parsed]);
+            }
+            $prepared[] = $parsed;
+        }
+
+        if ($prepared === []) {
+            return UtillsHelper::json(0, ['message' => 'At least one valid sell or buy row is required.']);
+        }
+
+        $companyIds = collect($prepared)->pluck('company_id')->unique()->values();
+        $companies = CompanyModel::query()
+            ->whereIn('id', $companyIds)
+            ->where('is_deleted', '0')
+            ->whereIn('type', [
+                CompanyTypeEnum::unlisted->value,
+                CompanyTypeEnum::secondary->value,
+            ])
+            ->approved()
+            ->get(['id'])
+            ->keyBy('id');
+
+        foreach ($prepared as $row) {
+            if (!$companies->has($row['company_id'])) {
+                $side = $row['side'] === 'sell' ? 'Sell' : 'Buy';
+
+                return UtillsHelper::json(0, [
+                    'message' => $side . ' row ' . $row['row_number'] . ' company not found (company_id ' . $row['company_id'] . ').',
+                ]);
+            }
+        }
+
+        $created = [];
+        try {
+            DB::beginTransaction();
+
+            foreach ($prepared as $row) {
+                $deal = new CompanyDealModel();
+                $deal->company_id = $row['company_id'];
+                $deal->created_by_partner_id = $partnerId;
+                $deal->created_by_seller_id = null;
+                $deal->deal_type = $row['side'];
+                $deal->available_quantity = $row['available_quantity'];
+                $deal->minimum_qty = $row['min_qty'];
+                app(CompanyDealPricing::class)->stampFromBase($deal, $row['base_price']);
+                $deal->status = CompanyDealStatusEnum::available->value;
+                $deal->is_hot_deal = false;
+                $deal->expired_at = null;
+                $deal->save();
+                $created[] = $deal;
+            }
+
+            app(CompanyDealPricing::class)->recordNonHotHistory(
+                collect($created)->pluck('company_id')->map(fn ($id) => (int) $id)->all()
+            );
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return UtillsHelper::json(0, ['message' => 'Unable to create deals. Please try again.']);
+        }
+
+        $data = collect($created)
+            ->map(function (CompanyDealModel $deal) use ($partnerId) {
+                return $this->formatInstitutionDeal(
+                    $deal->fresh(['company:id,brand_name,slug,logo,type']),
+                    $partnerId
+                );
+            })
+            ->values();
+
+        return UtillsHelper::json(1, [
+            'message' => 'Deals created',
+            'data' => $data,
+        ]);
+    }
+
+    public function updateInstitutionDeal(int $partnerId): JsonResponse
+    {
+        $request = request();
+        $statusValues = implode(',', array_column(CompanyDealStatusEnum::cases(), 'value'));
+        $dealTypeValues = implode(',', array_column(CompanyDealTypeEnum::cases(), 'value'));
+        $validation = Validator::make($request->all(), [
+            'uuid' => 'required|string',
+            'deal_type' => 'required|in:' . $dealTypeValues,
+            'available_quantity' => 'nullable|integer|min:0',
+            'share_price' => 'required|numeric|min:0',
+            'minimum_qty' => 'required|integer|min:1',
+            'status' => 'required|in:' . $statusValues,
+            'is_hot_deal' => 'nullable|boolean',
+            'expired_at' => 'nullable|date_format:Y-m-d H:i:s',
+        ]);
+        if ($validation->fails()) {
+            return UtillsHelper::json(0, ['message' => $validation->errors()->first()]);
+        }
+
+        $deal = $this->ownInstitutionDeal($request->uuid, $partnerId);
+        if (!$deal) {
+            return UtillsHelper::json(0, ['message' => 'Deal not found']);
+        }
+
+        $deal->deal_type = $request->deal_type;
+        if ($request->filled('available_quantity')) {
+            $deal->available_quantity = (int) $request->available_quantity;
+        }
+        $deal->share_price = $request->share_price;
+        $deal->minimum_qty = $request->minimum_qty;
+        $deal->status = $request->status;
+        $deal->is_hot_deal = $request->boolean('is_hot_deal');
+        $deal->expired_at = $request->filled('expired_at') ? $request->input('expired_at') : null;
+        $deal->save();
+
+        return UtillsHelper::json(1, [
+            'message' => 'Deal updated',
+            'data' => $this->formatInstitutionDeal($deal->fresh(['company:id,brand_name,slug,logo,type']), $partnerId),
+        ]);
+    }
+
+    public function deleteInstitutionDeal(int $partnerId): JsonResponse
+    {
+        $request = request();
+        $validation = Validator::make($request->all(), [
+            'uuid' => 'required|string',
+        ]);
+        if ($validation->fails()) {
+            return UtillsHelper::json(0, ['message' => $validation->errors()->first()]);
+        }
+
+        $deal = $this->ownInstitutionDeal($request->uuid, $partnerId);
         if (!$deal) {
             return UtillsHelper::json(0, ['message' => 'Deal not found']);
         }
@@ -854,7 +1195,7 @@ class SellerCompanyRepository
         ]);
     }
 
-    public function savePromoters(): JsonResponse
+    public function savePromoters(?int $partnerId = null): JsonResponse
     {
         $request = request();
         $validation = Validator::make($request->all(), [
@@ -869,7 +1210,7 @@ class SellerCompanyRepository
             return UtillsHelper::json(0, ['message' => $validation->errors()->first()]);
         }
 
-        $company = $this->ownedCompany((int) $request->company_id);
+        $company = $this->ownedCompany((int) $request->company_id, $partnerId);
         if (!$company) {
             return UtillsHelper::json(0, ['message' => 'Company not found']);
         }
@@ -902,7 +1243,7 @@ class SellerCompanyRepository
         ]);
     }
 
-    public function saveShareholders(): JsonResponse
+    public function saveShareholders(?int $partnerId = null): JsonResponse
     {
         $request = request();
         $validation = Validator::make($request->all(), [
@@ -917,7 +1258,7 @@ class SellerCompanyRepository
             return UtillsHelper::json(0, ['message' => $validation->errors()->first()]);
         }
 
-        $company = $this->ownedCompany((int) $request->company_id);
+        $company = $this->ownedCompany((int) $request->company_id, $partnerId);
         if (!$company) {
             return UtillsHelper::json(0, ['message' => 'Company not found']);
         }
@@ -1009,6 +1350,7 @@ class SellerCompanyRepository
             'uuid' => $deal->uuid,
             'deal_type' => $deal->deal_type,
             'available_quantity' => $deal->available_quantity,
+            'base_price' => $deal->base_price,
             'share_price' => $deal->share_price,
             'minimum_qty' => $deal->minimum_qty,
             'processing_fee_percentage' => $deal->processing_fee_percentage,
@@ -1025,6 +1367,105 @@ class SellerCompanyRepository
                 'type' => $company->type,
             ] : null,
         ];
+    }
+
+    private function formatInstitutionDeal(CompanyDealModel $deal, int $partnerId): array
+    {
+        $formatted = $this->formatSellerDeal($deal, (int) ($deal->created_by_seller_id ?? 0));
+        $formatted['is_mine'] = (int) $deal->created_by_partner_id === $partnerId;
+
+        return $formatted;
+    }
+
+    private function recordNonHotDealHistory(CompanyDealModel $deal): void
+    {
+        if ($deal->is_hot_deal) {
+            return;
+        }
+
+        app(CompanyDealPricing::class)->recordNonHotHistory([(int) $deal->company_id]);
+    }
+
+    /**
+     * @return array{side: string, row_number: int, company_id: int, base_price: float, min_qty: int, available_quantity: int}|string|null
+     *         null skips a blank or zero-price row. A string is a row error.
+     */
+    private function parseBulkDealRow(mixed $row, string $side, int $index): array|string|null
+    {
+        $priceKey = $side === 'sell' ? 'sell_price' : 'buy_price';
+        $label = $side === 'sell' ? 'Sell' : 'Buy';
+        $rowNumber = $index + 1;
+
+        if (!is_array($row)) {
+            return $label . ' row ' . $rowNumber . ' is invalid.';
+        }
+
+        $companyRaw = $row['company_id'] ?? null;
+        $priceRaw = $row[$priceKey] ?? null;
+        $minRaw = $row['min_qty'] ?? null;
+
+        if (is_string($companyRaw)) {
+            $companyRaw = trim($companyRaw);
+        }
+        if (is_string($priceRaw)) {
+            $priceRaw = trim($priceRaw);
+        }
+        if (is_string($minRaw)) {
+            $minRaw = trim($minRaw);
+        }
+
+        $priceMissing = $priceRaw === null || $priceRaw === '';
+        if ($priceMissing || (is_numeric($priceRaw) && (float) $priceRaw == 0.0)) {
+            return null;
+        }
+
+        if (!is_numeric($priceRaw) || (float) $priceRaw <= 0) {
+            return $label . ' row ' . $rowNumber . ' has an invalid price.';
+        }
+
+        if ($companyRaw === null || $companyRaw === '' || !$this->isWholeNumber($companyRaw) || (int) $companyRaw < 1) {
+            return $label . ' row ' . $rowNumber . ' requires a valid company_id.';
+        }
+
+        if ($minRaw === null || $minRaw === '' || !$this->isWholeNumber($minRaw) || (int) $minRaw < 1) {
+            return $label . ' row ' . $rowNumber . ' requires min_qty of at least 1.';
+        }
+
+        $minQty = (int) $minRaw;
+        $available = 0;
+        if (array_key_exists('total_qty', $row) && $row['total_qty'] !== null && $row['total_qty'] !== '') {
+            $totalRaw = $row['total_qty'];
+            if (is_string($totalRaw)) {
+                $totalRaw = trim($totalRaw);
+            }
+            if ($this->isWholeNumber($totalRaw) && (int) $totalRaw >= $minQty) {
+                $available = (int) $totalRaw;
+            }
+        }
+
+        return [
+            'side' => $side,
+            'row_number' => $rowNumber,
+            'company_id' => (int) $companyRaw,
+            'base_price' => round((float) $priceRaw, 2),
+            'min_qty' => $minQty,
+            'available_quantity' => $available,
+        ];
+    }
+
+    private function isWholeNumber(mixed $value): bool
+    {
+        if (is_int($value)) {
+            return true;
+        }
+        if (is_float($value)) {
+            return floor($value) == $value;
+        }
+        if (!is_string($value) || !is_numeric($value)) {
+            return false;
+        }
+
+        return preg_match('/^-?\d+$/', $value) === 1;
     }
 
     private function approvedDealCompany(int $companyId): ?CompanyModel
@@ -1058,13 +1499,38 @@ class SellerCompanyRepository
         return $deal;
     }
 
-    private function ownedCompany(int $companyId): ?CompanyModel
+    private function ownInstitutionDeal(string $uuid, int $partnerId): ?CompanyDealModel
     {
-        return CompanyModel::where('id', $companyId)
-            ->where('is_deleted', '0')
-            ->where('submitted_by_seller_id', request()->user()->id)
-            ->where('approval_status', '!=', CompanyApprovalStatusEnum::rejected->value)
+        $deal = CompanyDealModel::notDeleted()
+            ->where('uuid', $uuid)
+            ->where('created_by_partner_id', $partnerId)
             ->first();
+
+        if (!$deal) {
+            return null;
+        }
+
+        $company = $this->approvedDealCompany((int) $deal->company_id);
+        if (!$company) {
+            return null;
+        }
+
+        return $deal;
+    }
+
+    private function ownedCompany(int $companyId, ?int $partnerId = null): ?CompanyModel
+    {
+        $query = CompanyModel::where('id', $companyId)
+            ->where('is_deleted', '0')
+            ->where('approval_status', '!=', CompanyApprovalStatusEnum::rejected->value);
+
+        if ($partnerId !== null) {
+            $query->where('submitted_by_partner_id', $partnerId);
+        } else {
+            $query->where('submitted_by_seller_id', request()->user()->id);
+        }
+
+        return $query->first();
     }
 
     private function normalizeIdentity(?string $value): string

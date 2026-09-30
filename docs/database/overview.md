@@ -23,14 +23,14 @@ erDiagram
   documents ||--o{ pre_ipo_transaction : attaches
 ```
 
-Partner network detail (types, Seller target role, hierarchy): [new-system/database/partner.md](../new-system/database/partner.md).
+Partner network detail (types including Institution, Seller target role, hierarchy): [new-system/database/partner.md](../new-system/database/partner.md). `partner.type` and `partner.parent_type` include `Institution`. An Institution company submit sets nullable `company.submitted_by_partner_id` and leaves `submitted_by_seller_id` null. An Institution deal sets nullable `company_deals.created_by_partner_id` and leaves `created_by_seller_id` null. `company_deals.base_price` (nullable decimal 15,2) is the amount entered on create. `company_deals.share_price` is that base plus the admin processing fee. Institution, seller, and admin deal creates do not write `seller_company_share_price`. A non-hot create upserts today's `company_share_price` from non-deleted, not-expired, non-hot deals (`price` = minimum sell `share_price`, or the buy price when there is no sell; `distributer_price` = minimum buy `share_price`, or the sell price when there is no buy; `base_price` = minimum sell base, otherwise buy) and dispatches `CalcuatePricingAutoJob` once. Hot deals are excluded from that history.
 
 ## Key tables ↔ models (non-exhaustive)
 
 ### Actors
 | Table | Model |
 |-------|-------|
-| `investor` | `InvestorModel` |
+| `investor` | `InvestorModel` (`is_self` boolean, default 0; one self row per new partner except Relation Manager) |
 | `partner` | `PartnerModel` |
 | `startup` | `StartupModel` |
 | `user_admin` | `UserAdminModel` |

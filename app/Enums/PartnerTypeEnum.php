@@ -8,4 +8,5 @@ enum PartnerTypeEnum: string
     case distributor = 'Distributor';
     case retailer = 'Retailer';
     case relationmanager = 'Relation Manager';
+    case institution = 'Institution';
 }

@@ -38,6 +38,25 @@ class CommonHelper
         return app(GlobalSettingModel::class)->get($key);
     }
 
+    /**
+     * Admin-managed processing fee percent (app_settings.processing_fee_percentage).
+     * Allowed range is 1–100. Missing or out-of-range values fall back to 1.
+     */
+    public static function processingFeePercentage(): float
+    {
+        $raw = self::appSettings('processing_fee_percentage');
+        if (!is_numeric($raw)) {
+            return 1.0;
+        }
+
+        $value = (float) $raw;
+        if ($value < 1 || $value > 100) {
+            return 1.0;
+        }
+
+        return $value;
+    }
+
     public static function generateFileName(): string
     {
         return microtime(true) . '-' . Str::random(length: 60);

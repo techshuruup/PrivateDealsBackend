@@ -43,6 +43,7 @@ class CompanyModel extends Model
         'status',
         'approval_status',
         'submitted_by_seller_id',
+        'submitted_by_partner_id',
         'approved_by',
         'approved_at',
         'rejection_reason',
@@ -87,6 +88,11 @@ class CompanyModel extends Model
     public function submittedBySeller(): BelongsTo
     {
         return $this->belongsTo(SellerMasterModel::class, 'submitted_by_seller_id');
+    }
+
+    public function submittedByPartner(): BelongsTo
+    {
+        return $this->belongsTo(PartnerModel::class, 'submitted_by_partner_id');
     }
 
     public function sector(): BelongsTo

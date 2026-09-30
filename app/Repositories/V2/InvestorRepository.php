@@ -724,9 +724,9 @@ class InvestorRepository
             $partners = PartnerModel::select('id')->where('parent_id', $partner->id)->where('type', PartnerTypeEnum::relationmanager->value)->pluck('id');
             $partners->push($partner->id);
 
-            $investorQuery = InvestorModel::wherein('partner_id', $partners);
+            $investorQuery = InvestorModel::wherein('partner_id', $partners)->where('is_self', 0);
             if ($request->filled('relation_manager_ids')) {
-                $investorQuery = InvestorModel::wherein('partner_id', explode(',', $request->relation_manager_ids));
+                $investorQuery = InvestorModel::wherein('partner_id', explode(',', $request->relation_manager_ids))->where('is_self', 0);
             }
 
 

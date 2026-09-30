@@ -165,14 +165,14 @@ class UtillsHelper
         $code->expired_at = Carbon::now()->addMinutes(10);
         $code->save();
 
-        if ($mobile_country_code == '91' && CommonHelper::appSettings('default_verification_code_type') == CommunicationType::sms->value) {
-            SMSHelper::sendVerificationCode($otp, $code->id, $mobile_no);
-        }
+        // if ($mobile_country_code == '91' && CommonHelper::appSettings('default_verification_code_type') == CommunicationType::sms->value) {
+        //     SMSHelper::sendVerificationCode($otp, $code->id, $mobile_no);
+        // }
 
-        if ($mobile_country_code != '91' || CommonHelper::appSettings('default_verification_code_type') == CommunicationType::whatsapp->value) {
+        // if ($mobile_country_code != '91' || CommonHelper::appSettings('default_verification_code_type') == CommunicationType::whatsapp->value) {
             self::sendWpMessage(
                 NotificationTypeEnum::regular,
-                'otp_template_temp',
+                'otp_verification_sec',
                 WpMessageTypeEnum::text,
                 $mobile_no,
                 'User',
@@ -186,7 +186,7 @@ class UtillsHelper
                 $user_class_name,
                 $mobile_country_code
             );
-        }
+        // }
 
         return $otp;
     }

@@ -85,6 +85,9 @@ Pointer stub: [START-HERE.md](START-HERE.md) → redirects to new-system.
 | [api/overview.md](api/overview.md) | API auth layers, versioning |
 | [api/v1.md](api/v1.md) | Investor / business / startup v1 |
 | [api/v2.md](api/v2.md) | Investor / business v2 |
+| [api/app-handoff.md](api/app-handoff.md) | App developer start here — 30 Sep 2026 partner and Institution APIs |
+| [api/institution.md](api/institution.md) | Institution partner company submit, catalog, promoters, shareholders, and deals |
+| [api/partner.md](api/partner.md) | Partner investor list, investor create, CML KYC, and self investor id |
 | [api/webhooks-third-party.md](api/webhooks-third-party.md) | Webhooks + sandbox |
 
 ### Workflows

@@ -15,6 +15,7 @@
 | Retailer | WM app | Creates Investors only |
 | Relationship Manager | WM app | Assigned Investors only; no user create |
 | Seller | Seller app | Companies/deals/prices; no subordinate users |
+| Institution | Partner account | Admin creates it like a Distributor. Can create an unlisted or secondary company that is approved and live for partners immediately, and can use the Institution company catalog, submissions, promoters, shareholders, and deals APIs. Seller share-price quotes stay on the seller app. Not the seller-app label used in transaction diagrams. |
 | Investor | Record | Owned by WM/Dist/Retailer |
 
 ---

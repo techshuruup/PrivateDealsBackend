@@ -8,6 +8,7 @@ use App\Enums\MinimumInvestmentTypeEnum;
 use App\Enums\TempCompanyIntentEnum;
 use App\Enums\TempCompanyStatusEnum;
 use App\Helpers\AdminHelper;
+use App\Helpers\CommonHelper;
 use App\Models\CompanyCustomDataModel;
 use App\Models\CompanyEventsModel;
 use App\Models\CompanyFundamentalsModel;
@@ -88,7 +89,7 @@ class PromoteTempCompanyService
             'sector_id' => $temp->sector_id,
             'min_investment_amount' => $temp->min_investment_amount,
             'commission' => $temp->commission,
-            'processing_fee_percentage' => $temp->processing_fee_percentage ?? 2,
+            'processing_fee_percentage' => $temp->processing_fee_percentage ?? CommonHelper::processingFeePercentage(),
             'lot_size' => $fundamentals['lot_size'] ?? null,
             'fifty_two_week_high' => $fundamentals['fifty_two_week_high'] ?? 0,
             'fifty_two_week_low' => $fundamentals['fifty_two_week_low'] ?? 0,
@@ -176,7 +177,7 @@ class PromoteTempCompanyService
         $company->final_min_investment_amount = $temp->min_investment_amount;
         $company->min_investment_type = MinimumInvestmentTypeEnum::quantity->value;
         $company->commission = $temp->commission;
-        $company->processing_fee_percentage = $temp->processing_fee_percentage ?? 2.00;
+        $company->processing_fee_percentage = $temp->processing_fee_percentage ?? CommonHelper::processingFeePercentage();
         if ($temp->logo) {
             $company->logo = $temp->logo;
         } elseif (filled($temp->logo_url)) {

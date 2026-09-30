@@ -249,6 +249,20 @@ Breadcrumbs::for('distributor.list', function (BreadcrumbTrail $trail) {
     $trail->parent('home');
     $trail->push(getPageTitle(), request()->route()->getName());
 });
+Breadcrumbs::for('institution.create', function (BreadcrumbTrail $trail) {
+    $trail->parent('home');
+    $trail->push('Institution List', route('admin.partner.institution.list'));
+    $trail->push(getPageTitle(), route('admin.partner.institution.create'));
+});
+Breadcrumbs::for('institution.edit', function (BreadcrumbTrail $trail) {
+    $trail->parent('home');
+    $trail->push('Institution List', route('admin.partner.institution.list'));
+    $trail->push(getPageTitle(), route('admin.partner.institution.edit', 'institution'));
+});
+Breadcrumbs::for('institution.list', function (BreadcrumbTrail $trail) {
+    $trail->parent('home');
+    $trail->push(getPageTitle(), request()->route()->getName());
+});
 Breadcrumbs::for('retailer.create', function (BreadcrumbTrail $trail) {
     $trail->parent('home');
     $trail->push('Retailer List', route('admin.partner.retailers.list'));

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\V2\Business;
 
 use App\Enums\CompanyTypeEnum;
+use App\Enums\GenderEnum;
+use App\Enums\InvestorTypeEnum;
 use App\Enums\PartnerTypeEnum;
 use App\Enums\PreIpoCategoryEnum;
 use App\Enums\StartupPrimaryRoundStatusEnum;
@@ -30,6 +32,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
 class CommonController extends Controller
@@ -72,10 +75,13 @@ class CommonController extends Controller
             },
             'peerratio',
             'deals' => function ($query) {
-                // All non-deleted, non-expired deals for this company only (any seller/admin)
+                // All non-deleted, non-expired deals for this company only (any seller, Institution, or admin)
                 $query->notDeleted()
                     ->notExpired()
-                    ->with(['createdBySeller:id,uuid,company_name,logo'])
+                    ->with([
+                        'createdBySeller:id,uuid,company_name,logo',
+                        'createdByPartner:id,uuid,name,profile_photo,gender',
+                    ])
                     ->orderByDesc('is_hot_deal')
                     ->orderByDesc('id');
             },
@@ -89,12 +95,20 @@ class CommonController extends Controller
             'deals',
             $company->deals->map(function (CompanyDealModel $deal) {
                 $seller = $deal->createdBySeller;
+                $partner = $deal->createdByPartner;
                 $deal->unsetRelation('createdBySeller');
+                $deal->unsetRelation('createdByPartner');
                 $deal->setAttribute('seller', $seller ? [
                     'id' => (int) $seller->id,
                     'uuid' => $seller->uuid,
                     'company_name' => $seller->company_name,
                     'logo' => FileUpDownHelper::get_seller_logo_url($seller),
+                ] : null);
+                $deal->setAttribute('partner', $partner ? [
+                    'id' => (int) $partner->id,
+                    'uuid' => $partner->uuid,
+                    'name' => $partner->name,
+                    'profile_photo' => FileUpDownHelper::get_partner_profile_photo_url($partner),
                 ] : null);
 
                 return $deal;
@@ -364,6 +378,139 @@ class CommonController extends Controller
         return UtillsHelper::json(1, [
             'message' => 'Investor detail',
             'data' => $investor
+        ]);
+    }
+
+    function investorList(): JsonResponse
+    {
+        $request = request();
+
+        $validation = Validator::make($request->all(), [
+            'is_kyc' => ['required', 'in:All,Yes,No'],
+            'is_active' => ['required', 'in:All,Yes,No'],
+            'is_aif' => ['nullable', 'in:All,Yes,No'],
+            'relation_manager_ids' => ['nullable', 'string'],
+        ]);
+
+        if (!$request->has('is_aif')) {
+            $request->is_aif = 'All';
+        }
+
+        if ($validation->fails()) {
+            return UtillsHelper::json(0, ['message' => $validation->errors()->first()]);
+        }
+
+        $partner = $request->user();
+        $commissionRate = $partner->commission != 0 ? ($partner->commission / 100) : 0;
+
+        $partners = PartnerModel::select('id')
+            ->where('parent_id', $partner->id)
+            ->where('type', PartnerTypeEnum::relationmanager->value)
+            ->pluck('id');
+        $partners->push($partner->id);
+
+        $investorQuery = InvestorModel::whereIn('partner_id', $partners)->where('is_self', 0);
+        if ($request->filled('relation_manager_ids')) {
+            $investorQuery = InvestorModel::whereIn('partner_id', explode(',', $request->relation_manager_ids))->where('is_self', 0);
+        }
+
+        $this->applyPartnerInvestorListFilters($investorQuery, $request);
+
+        $investordata = $investorQuery->where('is_deleted', '0')
+            ->with($this->partnerInvestorListWith())
+            ->get()
+            ->map(function ($investor) use ($commissionRate) {
+                return $this->decoratePartnerInvestorListRow($investor, $commissionRate);
+            });
+
+        $selfQuery = InvestorModel::where('partner_id', $partner->id)->where('is_self', 1);
+        $this->applyPartnerInvestorListFilters($selfQuery, $request);
+        $selfInvestor = $selfQuery->where('is_deleted', '0')
+            ->with($this->partnerInvestorListWith())
+            ->first();
+
+        if ($selfInvestor) {
+            $investordata->prepend($this->decoratePartnerInvestorListRow($selfInvestor, $commissionRate));
+        }
+
+        return UtillsHelper::json(1, [
+            'message' => 'Investor List',
+            'data' => $investordata,
+        ]);
+    }
+
+    function investorCreate(): JsonResponse
+    {
+        $request = request();
+
+        if (!$request->filled('email')) {
+            $request->merge(['email' => null]);
+        }
+        if (!$request->filled('gender')) {
+            $request->merge(['gender' => null]);
+        }
+
+        $emailRules = ['nullable', 'email'];
+        if ($request->filled('email')) {
+            $emailRules[] = Rule::unique((new InvestorModel)->getTable())->where(function ($query) {
+                return $query->where('is_deleted', '0')->where('registration_step', '3');
+            });
+        }
+
+        $validation = Validator::make($request->all(), [
+            'investor_type' => ['required', Rule::enum(InvestorTypeEnum::class)],
+            'name' => 'required|string|max:255',
+            'mobile_number' => [
+                'required',
+                'numeric',
+                Rule::unique((new InvestorModel)->getTable())->where(function ($query) {
+                    return $query->where('is_deleted', '0')->where('registration_step', '3');
+                }),
+            ],
+            'email' => $emailRules,
+            'gender' => ['nullable', Rule::enum(GenderEnum::class)],
+        ]);
+
+        if ($validation->fails()) {
+            return UtillsHelper::json(0, ['message' => $validation->errors()->first()]);
+        }
+
+        $partner = $request->user();
+
+        $investor = InvestorModel::where('mobile_number', $request->mobile_number)
+            ->where('mobile_country_code', 91)
+            ->where('registration_step', '!=', 3)
+            ->where('is_deleted', 0)
+            ->first();
+
+        if (!$investor) {
+            $investor = new InvestorModel();
+        }
+
+        $investor->partner_id = $partner->id;
+        $investor->created_by = $partner->created_by;
+        $investor->updated_by = $partner->created_by;
+        $investor->registration_step = 3;
+        $investor->mobile_country_code = 91;
+        $investor->mobile_number = $request->mobile_number;
+        $investor->referral_code = UtillsHelper::generateUniqueReferralCode();
+        $investor->is_self = 0;
+        $investor->investor_type = $request->investor_type;
+        $investor->name = ucfirst(trim($request->name));
+        $investor->email = $request->filled('email') ? strtolower(trim($request->email)) : null;
+        $investor->is_primary_access = $partner->is_primary_access ? 1 : 0;
+        $investor->is_secondary_access = $partner->is_secondary_access ? 1 : 0;
+        $investor->is_preipo_access = $partner->is_preipo_access ? 1 : 0;
+
+        if ($request->filled('gender')) {
+            $investor->gender = $request->gender;
+        }
+
+        $investor->save();
+
+        return UtillsHelper::json(1, [
+            'message' => 'Investor Created',
+            'data' => $investor,
         ]);
     }
 
@@ -1045,5 +1192,66 @@ class CommonController extends Controller
                 ];
             })
             ->values();
+    }
+
+    private function applyPartnerInvestorListFilters($investorQuery, $request): void
+    {
+        if ($request->is_kyc !== 'All') {
+            $investorQuery->where('preipo_kyc_status', $request->is_kyc === 'Yes' ? 1 : 0);
+        }
+        if ($request->is_aif !== 'All') {
+            $investorQuery->where('aif_status', $request->is_aif === 'Yes' ? 1 : 0);
+        }
+        if ($request->is_active !== 'All') {
+            $investorQuery->where('is_active', $request->is_active === 'Yes' ? 1 : 0);
+        }
+    }
+
+    private function partnerInvestorListWith(): array
+    {
+        return [
+            'partner' => function ($query) {
+                $query->select('id', 'name');
+            },
+            'portfolio' => function ($query) {
+                $query->select('id', 'investor_id', 'investment_amount', 'startup_id');
+            },
+            'portfolio.startup' => function ($query) {
+                $query->select('id', 'brand_name');
+            },
+            'city',
+            'state',
+            'country',
+            'kyc',
+        ];
+    }
+
+    private function decoratePartnerInvestorListRow($investor, float $commissionRate)
+    {
+        $totalInvested = $investor->portfolio->sum('investment_amount');
+        $noOfStartups = $investor->portfolio->pluck('startup_id')->unique()->count();
+        $commissionEarned = $investor->portfolio->sum(function ($portfolio) use ($commissionRate) {
+            return $portfolio->investment_amount * $commissionRate;
+        });
+
+        $startupList = $investor->portfolio->groupBy('startup_id')->map(function ($portfolioGroup) use ($commissionRate) {
+            $portfolio = $portfolioGroup->first();
+            return [
+                'brand_name' => $portfolio->startup ? $portfolio->startup->brand_name : 'Unknown',
+                'amount_invested' => $portfolio->investment_amount,
+                'commission_earned' => $portfolio->investment_amount * $commissionRate,
+            ];
+        })->values();
+
+        $investor->total_invested = $totalInvested;
+        $investor->no_of_startups = $noOfStartups;
+        $investor->commission_earned = $commissionEarned;
+        $investor->startup_list = $startupList;
+        $investor->partner_details = [
+            'partner_id' => $investor->partner->id ?? null,
+            'partner_name' => $investor->partner->name ?? 'Unknown',
+        ];
+
+        return $investor;
     }
 }

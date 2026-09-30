@@ -46,9 +46,17 @@
                                         <td>{{ $item->cin }}</td>
                                         <td>{{ $item->sector->name ?? '-' }}</td>
                                         <td>
-                                            {{ $item->submittedBySeller->company_name ?? '-' }}
-                                            @if ($item->submittedBySeller?->mobile_number)
-                                                <br><span class="text-muted">{{ $item->submittedBySeller->mobile_number }}</span>
+                                            @if ($item->submittedByPartner)
+                                                {{ $item->submittedByPartner->name ?? '-' }}
+                                                <br><span class="text-muted">Institution</span>
+                                                @if ($item->submittedByPartner->mobile_number)
+                                                    <br><span class="text-muted">{{ $item->submittedByPartner->mobile_number }}</span>
+                                                @endif
+                                            @else
+                                                {{ $item->submittedBySeller->company_name ?? '-' }}
+                                                @if ($item->submittedBySeller?->mobile_number)
+                                                    <br><span class="text-muted">{{ $item->submittedBySeller->mobile_number }}</span>
+                                                @endif
                                             @endif
                                         </td>
                                         <td>{{ $item->created_at }}</td>

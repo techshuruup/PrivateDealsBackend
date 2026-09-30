@@ -63,4 +63,4 @@ Either the company is **live** for partners, or creation was **blocked** because
 ## For technical team
 
 **Target product rule (these docs):** create without approval gate; enforce duplicate-company validation before insert.  
-**Current code** may still use pending approval / `approval_status` — update code later to match; until then living-docs note: **docs describe target**. Seller check-duplicate style APIs may already exist under seller company endpoints — align create flow with that validation.
+**Current code:** seller and Institution company create save `approval_status=approved` and `status=0`, so the company is live for partners immediately. Duplicate CIN / legal name checks still block a second copy.
