@@ -7,7 +7,7 @@
 - Composer dependencies
 - Web server document root = `public/`
 - Cron: `* * * * * php artisan schedule:run`
-- Queue worker: `php artisan queue:work` (database driver)
+- Queue worker: Supervisor program `privatedeals-worker` (`php artisan queue:work`, database driver). Setup: [queue-worker.md](queue-worker.md). The other project’s `laravel-worker` is separate.
 
 ## Active schedule (from `routes/console.php`)
 
@@ -44,7 +44,7 @@ Repo secrets, not stored in the workflow file: `VPS_HOST`, `VPS_USER`, `VPS_SSH_
 2. Set `.env` (APP_KEY, DB, AWS, integrations)
 3. `php artisan migrate --force`
 4. `php artisan optimize` / config/route/view cache as needed
-5. Restart queue workers
+5. Restart this app’s queue worker: `sudo supervisorctl restart privatedeals-worker:*` ([queue-worker.md](queue-worker.md))
 6. Confirm cron + storage permissions + S3 credentials
 7. Smoke-test: admin login, API headtoken, one invest read endpoint, webhook health
 
@@ -62,5 +62,6 @@ Repo secrets, not stored in the workflow file: `VPS_HOST`, `VPS_USER`, `VPS_SSH_
 
 ## Related
 
+- [queue-worker.md](queue-worker.md)
 - [configuration/environment.md](../configuration/environment.md)
 - [troubleshooting/common-issues.md](../troubleshooting/common-issues.md)

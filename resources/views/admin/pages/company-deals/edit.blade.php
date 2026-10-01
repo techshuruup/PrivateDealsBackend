@@ -88,8 +88,9 @@
                             <div class="fv-row w-100 flex-md-root">
                                 <label class="required form-label">Share Price</label>
                                 <input placeholder="e.g. 125.50" name="share_price"
-                                    value="{{ old('share_price', $item->share_price) }}"
+                                    value="{{ old('share_price', $item->base_price ?? $item->share_price) }}"
                                     class="form-control mb-2 input" type="number" min="0" step="0.01" required>
+                                <div class="form-text">This amount is the base price. The saved share price adds the processing fee.</div>
                                 @include('admin.partials.form.input-error-message', ['key' => 'share_price'])
                             </div>
                         </div>
@@ -105,7 +106,7 @@
                                 <label class="form-label">Processing Fee (%)</label>
                                 <input value="{{ CommonHelper::processingFeePercentage() }}"
                                     class="form-control mb-2" type="text" readonly>
-                                <div class="form-text">Set in App Settings. Saving this deal stores the current admin processing fee (1–100, default 1).</div>
+                                <div class="form-text">Set in App Settings. This deal saves the current admin processing fee (1–100, default 1).</div>
                             </div>
                         </div>
                         <div class="d-flex flex-wrap gap-10 mb-5">

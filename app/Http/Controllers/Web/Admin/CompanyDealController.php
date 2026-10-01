@@ -6,7 +6,6 @@ use App\Enums\CompanyDealStatusEnum;
 use App\Enums\CompanyDealTypeEnum;
 use App\Enums\PartnerTypeEnum;
 use App\Helpers\AdminHelper;
-use App\Helpers\CommonHelper;
 use App\Helpers\UtillsHelper;
 use App\Http\Controllers\Controller;
 use App\Models\CompanyDealModel;
@@ -290,18 +289,34 @@ class CompanyDealController extends Controller
             return redirect()->back()->withInput()->with('error', 'Institution not found');
         }
 
+        $previousCompanyId = (int) $item->company_id;
+        $wasNonHot = !$item->is_hot_deal;
+
         $item->company_id = $request->company_id;
         $item->created_by_seller_id = null;
         $item->created_by_partner_id = $partnerId;
         $item->deal_type = $request->deal_type;
         $item->available_quantity = $request->available_quantity;
-        $item->share_price = $request->share_price;
         $item->minimum_qty = $request->minimum_qty;
-        $item->processing_fee_percentage = CommonHelper::processingFeePercentage();
+        app(CompanyDealPricing::class)->stampFromBase($item, $request->share_price);
         $item->status = $request->status;
         $item->expired_at = $request->filled('expired_at') ? $request->expired_at : null;
         $item->is_hot_deal = $request->boolean('is_hot_deal');
-        $item->update();
+
+        $historyCompanyIds = [];
+        if (!$item->is_hot_deal || $wasNonHot) {
+            $historyCompanyIds[] = (int) $item->company_id;
+        }
+        if ($wasNonHot && $previousCompanyId !== (int) $item->company_id) {
+            $historyCompanyIds[] = $previousCompanyId;
+        }
+
+        DB::transaction(function () use ($item, $historyCompanyIds) {
+            $item->save();
+            if ($historyCompanyIds !== []) {
+                app(CompanyDealPricing::class)->recordNonHotHistory($historyCompanyIds);
+            }
+        });
 
         AdminHelper::logPut('Updated Company Deal', CompanyDealModel::class, $item->id);
 

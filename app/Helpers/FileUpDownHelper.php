@@ -951,17 +951,16 @@ class FileUpDownHelper
 
     static function get_partner_profile_photo_url(PartnerModel $partner): string
     {
-        if ($partner->profile_photo != '' && $partner->profile_photo != NULL) {
+        if ($partner && $partner->profile_photo != '' && $partner->profile_photo != NULL) {
             return self::fileUrl($partner->profile_photo);
-        } else {
-            if ($partner->gender == GenderEnum::male->value) {
-                return asset('core/placeholders/male_user.svg');
-            } else if ($partner->gender == GenderEnum::female->value) {
-                return asset('core/placeholders/female_user.svg');
-            } else {
-                return asset('core/placeholders/other_user.svg');
-            }
         }
+
+        $name = trim((string) ($partner->name ?? ''));
+        if ($name === '') {
+            $name = 'Partner';
+        }
+
+        return 'https://ui-avatars.com/api/?name=' . urlencode($name) . '&background=0D8ABC&color=fff';
     }
 
     static function get_company_logo_url(CompanyModel $company): string

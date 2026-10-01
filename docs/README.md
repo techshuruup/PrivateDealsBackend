@@ -110,6 +110,7 @@ Pointer stub: [START-HERE.md](START-HERE.md) → redirects to new-system.
 | [configuration/environment.md](configuration/environment.md) | `.env`, settings, filesystem |
 | [integrations/overview.md](integrations/overview.md) | Digio, WhatsApp, FCM, Calendly, OCR, AWS, Google |
 | [deployment/overview.md](deployment/overview.md) | Run, queue, schedule, deploy notes |
+| [deployment/queue-worker.md](deployment/queue-worker.md) | VPS Supervisor worker for this app (`privatedeals-worker`) |
 | [development/setup.md](development/setup.md) | Local setup |
 | [development/conventions.md](development/conventions.md) | Code patterns for AI/dev |
 | [troubleshooting/common-issues.md](troubleshooting/common-issues.md) | Frequent failures |

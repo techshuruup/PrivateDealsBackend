@@ -6,9 +6,18 @@
             <div class="ui_content">
                 <h3 class="main_title">{{ getpageTitle() }}</h3>
                 <div class="d_card">
-                    <form action="{{ route('front.business.channel_partner.store') }}" method="post">
+                    <form action="{{ route('front.business.channel_partner.store') }}" method="post"
+                        enctype="multipart/form-data">
                         {{ csrf_field() }}
                         <div class="row">
+                            <div class="col-md-4">
+                                <div class="d_field_group">
+                                    <label>Logo</label>
+                                    <input type="file" class="d_field" name="logo"
+                                        onchange="fileExAllowedWithSize(this,'{{ CommonHelper::appSettings('file_image_extensions_allowed') }}','{{ CommonHelper::appSettings('file_image_max_size') }}')">
+                                    @include('front.common.input-error-message', ['key' => 'logo'])
+                                </div>
+                            </div>
                             <div class="col-md-4">
                                 <div class="d_field_group">
                                     <label>Name

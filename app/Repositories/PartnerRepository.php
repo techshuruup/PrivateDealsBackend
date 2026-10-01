@@ -22,6 +22,7 @@ use App\Models\PortfolioModel;
 use App\Models\StartupMisModel;
 use App\Models\StartupModel;
 use App\Services\DematKycService;
+use App\Traits\FileUploadTrait;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -44,6 +45,8 @@ use Illuminate\Contracts\Database\Eloquent\Builder;
 
 class PartnerRepository
 {
+    use FileUploadTrait;
+
     public function getInvestedStartupMIS()
     {
         $partnerId = request()->user()->id;
@@ -153,7 +156,7 @@ class PartnerRepository
                         $this->attachSelfInvestorId($partner);
                         return UtillsHelper::json(1, [
                             'message' => 'Login Success',
-                            'data'  => $partner
+                            'data'  => $this->presentPartner($partner)
                         ]);
                     }
                     if ($partner->ask_password_change == '1') {
@@ -226,7 +229,7 @@ class PartnerRepository
                 $partner->noOfStartups = $totalStartups;
                 $partner->commission_earned = $commissionEarned;
 
-                return $partner;
+                return $this->presentPartner($partner);
             });
             return UtillsHelper::json(
                 1,
@@ -270,6 +273,7 @@ class PartnerRepository
             ],
             'commission' => 'required|numeric|between:0,99.99',
             'gender'        => 'required',
+            'logo' => $this->partnerLogoRule(),
         ];
         $rules['partner'] = 'required';
         $rules['password'] = 'required';
@@ -294,6 +298,7 @@ class PartnerRepository
         $partner->is_primary_access = $user->is_primary_access;
         $partner->is_secondary_access = $user->is_secondary_access;
         $partner->is_preipo_access = $user->is_preipo_access;
+        $this->storePartnerLogo($partner);
         $partner->save();
         $this->createSelfInvestor($partner);
         return UtillsHelper::json(1, ['message' => 'Channel Partner Created']);
@@ -406,7 +411,7 @@ class PartnerRepository
         } else {
             UtillsHelper::sendVerificationCode($partner->id, PartnerModel::class, $request->mobile_no, CodeVerificationTypeEnum::forgot_password);
             if ($request->is('api/*')) {
-                return UtillsHelper::json(1, ['message' => 'Verification code sent to ' . $request->mobile_no, 'data' => $partner]);
+                return UtillsHelper::json(1, ['message' => 'Verification code sent to ' . $request->mobile_no, 'data' => $this->presentPartner($partner)]);
             } else {
 
                 Session::put('partner_forget_id', $partner->id);
@@ -552,7 +557,7 @@ class PartnerRepository
 
                 Session::forget('partner_forget_id');
                 Session::flash('success', 'Password changed');
-                return UtillsHelper::json(1, ['message' => 'Password reset success.', 'data'  => $partner]);
+                return UtillsHelper::json(1, ['message' => 'Password reset success.', 'data'  => $this->presentPartner($partner)]);
             }
         }
     }
@@ -567,7 +572,7 @@ class PartnerRepository
             1,
             [
                 'message' => 'Profile',
-                'data' => $partner
+                'data' => $this->presentPartner($partner)
             ],
             200
         );
@@ -587,7 +592,8 @@ class PartnerRepository
                 Rule::unique((new PartnerModel())->getTable())->where(function ($query) use ($user) {
                     return $query->where('is_deleted', '0')->where('id', '!=', $user->id);
                 })
-            ]
+            ],
+            'logo' => $this->partnerLogoRule(),
         ]);
         if ($validation->fails()) {
             if ($request->is('api/*')) {
@@ -606,6 +612,7 @@ class PartnerRepository
 
         $partner = PartnerModel::where('id', $user->id)->first();
         $partner->email = $request->email;
+        $this->storePartnerLogo($partner);
         $partner->save();
         if ($request->is('api/*')) {
             return UtillsHelper::json(
@@ -728,6 +735,7 @@ class PartnerRepository
                 }),
             ],
             'gender'                => 'required',
+            'logo'                  => $this->partnerLogoRule(),
             'is_primary_access'     => 'required|boolean',
             'is_secondary_access'   => 'required|boolean',
             'is_preipo_access'      => 'required|boolean',
@@ -860,8 +868,7 @@ class PartnerRepository
         $partner->is_primary_access = $request->input('is_primary_access', 0);
         $partner->is_secondary_access = $request->input('is_secondary_access', 0);
         $partner->is_preipo_access = $request->input('is_preipo_access', 0);
-
-
+        $this->storePartnerLogo($partner);
 
         $partner->save();
 
@@ -933,6 +940,37 @@ class PartnerRepository
         $route = $routeMap[$request->partner_type] ?? 'admin.partner.relationalManager.list';
 
         return redirect()->route($route)->with('success', $message);
+    }
+
+    private function presentPartner(PartnerModel $partner): PartnerModel
+    {
+        $partner->setAttribute('profile_photo', FileUpDownHelper::get_partner_profile_photo_url($partner));
+
+        return $partner;
+    }
+
+    public function storePartnerLogo(PartnerModel $partner): void
+    {
+        $request = request();
+        if (!$request->hasFile('logo')) {
+            return;
+        }
+
+        $uploaded = FileUpDownHelper::partner_profile_photo_upload($request->file('logo'));
+        if (!$uploaded) {
+            return;
+        }
+
+        if ($partner->profile_photo) {
+            $this->deleteFile($partner->profile_photo);
+        }
+
+        $partner->profile_photo = $uploaded;
+    }
+
+    private function partnerLogoRule(): string
+    {
+        return 'nullable|image|mimes:' . CommonHelper::appSettings('file_image_extensions_allowed') . '|max:' . UtillsHelper::maxFileImageSizeInKB();
     }
 
     private function adminCreateRequiresSelfInvestorCml($request, $uuid): bool

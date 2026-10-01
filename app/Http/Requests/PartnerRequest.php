@@ -4,6 +4,8 @@ namespace App\Http\Requests;
 
 use App\Enums\GenderEnum;
 use App\Enums\PartnerTypeEnum;
+use App\Helpers\CommonHelper;
+use App\Helpers\UtillsHelper;
 use App\Models\PartnerModel;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -88,6 +90,7 @@ class PartnerRequest extends FormRequest
                 }),
             ],
             'gender'        => 'required',
+            'logo' => 'nullable|image|mimes:' . CommonHelper::appSettings('file_image_extensions_allowed') . '|max:' . UtillsHelper::maxFileImageSizeInKB(),
             'is_primary_access'     => 'required|boolean',
             'is_secondary_access'   => 'required|boolean',
             'is_preipo_access'      => 'required|boolean',

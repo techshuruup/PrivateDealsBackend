@@ -6,9 +6,23 @@
             <div class="ui_content">
                 <h3>{{ getPageTitle() }}</h3>
                 <div class="d_card">
-                    <form action="{{ route('front.business.profile.post') }}" method="post">
+                    <form action="{{ route('front.business.profile.post') }}" method="post"
+                        enctype="multipart/form-data">
                         @csrf
                         <div class="row">
+                            <div class="col-md-4">
+                                <div class="d_field_group">
+                                    <label>Logo</label>
+                                    <input type="file" class="d_field" name="logo"
+                                        onchange="fileExAllowedWithSize(this,'{{ CommonHelper::appSettings('file_image_extensions_allowed') }}','{{ CommonHelper::appSettings('file_image_max_size') }}')">
+                                    @include('front.common.input-error-message', ['key' => 'logo'])
+                                    @if (Auth::guard('partner')->user()->profile_photo)
+                                        <p class="mt-2"><a
+                                                href="{{ route('download.web', ['path' => Auth::guard('partner')->user()->profile_photo, 'name' => 'Logo of ' . Auth::guard('partner')->user()->name]) }}">Download</a>
+                                        </p>
+                                    @endif
+                                </div>
+                            </div>
                             <div class="col-md-4">
                                 <div class="d_field_group">
                                     <label>Name</label>

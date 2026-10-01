@@ -25,6 +25,7 @@
                         </div>
                         <div class="card-body pt-0">
                             <div class="d-flex flex-wrap gap-10 mb-5">
+                                @include('admin.pages.partner.partials.logo-field')
                                 <div class="fv-row w-100 flex-md-root">
                                     <label class="required form-label">Name</label>
                                     <input name="name" class="form-control mb-2" placeholder="Enter Name"

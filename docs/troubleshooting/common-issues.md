@@ -19,7 +19,7 @@
 
 ## Notifications not sending
 
-- Queue worker not running (`QUEUE_CONNECTION=database`)
+- Queue worker not running (`QUEUE_CONNECTION=database`). This app uses Supervisor program `privatedeals-worker`, not the other project’s `laravel-worker`. See [deployment/queue-worker.md](../deployment/queue-worker.md).
 - Scheduler not running (dispatch commands every 2 minutes)
 - Device tokens missing (`CoreFirebaseDeviceTokenModel`)
 - WhatsApp provider / template issues — check report message tables

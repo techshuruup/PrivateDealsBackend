@@ -49,7 +49,7 @@ Entry map: `routes/api.php`.
 php artisan schedule:run
 ```
 
-on a cron (every minute), and a queue worker:
+on a cron (every minute), and a queue worker. On the VPS that worker is the Supervisor program `privatedeals-worker` ([deployment/queue-worker.md](../deployment/queue-worker.md)):
 
 ```bash
 php artisan queue:work

@@ -59,6 +59,7 @@ class ChannelPartnerController extends Controller
         $partner->parent_id = Auth::guard('partner')->user()->id;
         $partner->ask_password_change = 1;
         $partner->type = $partnerRequest->partner;
+        $this->partnerRepo->storePartnerLogo($partner);
         $partner->save();
         $this->partnerRepo->createSelfInvestor($partner);
 
