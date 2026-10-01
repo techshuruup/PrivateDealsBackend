@@ -532,7 +532,7 @@ These routes are Institution-only (`partner.type` = `Institution`). Any other pa
 
 List and detail include an order only when `pre_ipo_transaction.partner_id` is this Institution, `order_step` is set, `order_step` is not `mandate_pending`, and the order was not cancelled before the buy mandate was signed. A reject from `share_confirmation_pending` stays on the list because the signed `BuyMandate` document exists. These lists are new orders only, so a row never includes `status_list` or the old status `0`–`5` timeline.
 
-`current_step` and `next_step` are the Institution labels from `PreIpoOrderStepHelper::labels`. `action` is an array of action names, or null. `sign_link` is null here: the Institution does not sign. The other keys match the buying-partner order-step object in [partner.md](partner.md): `id`, `transaction_invoice_no`, `order_step`, `current_step`, `next_step`, `action`, `sign_link`, `investor` (`id`, `name`), `company` (`id`, `brand_name`, `logo`), `deal_id`, `shares`, `base_price`, `distributer_price`, `share_price`, `investment_amount`, `payable_amount`, `cancellation_reason`, `payment_details`, `payment_receipt`, `share_transfer_receipt`, `created_at`. `payment_details.account` is this Institution's self-investor CML bank, not `seller_master`. Approve, reject, confirm-payment, and share-transfer-receipt return that same object.
+`current_step` and `next_step` are the Institution labels from `PreIpoOrderStepHelper::labels`. `action` is an array of action names, or null. `sign_link` is null here: the Institution does not sign. The other keys match the buying-partner order-step object in [partner.md](partner.md): `id`, `transaction_invoice_no`, `order_step`, `current_step`, `next_step`, `action`, `sign_link`, `investor` (`id`, `name`), `company` (`id`, `brand_name`, `logo`), `deal_id`, `shares`, `base_price`, `distributer_price`, `share_price`, `investment_amount`, `payable_amount`, `cancellation_reason`, `payment_details`, `payment_receipt`, `share_transfer_receipt`, `documents`, `created_at`. `payment_details.account` is this Institution's self-investor CML bank, not `seller_master`. Approve, reject, confirm-payment, and share-transfer-receipt return that same object.
 
 | Method | Path | Purpose |
 |--------|------|---------|
@@ -553,7 +553,7 @@ No body. Success (`status` `1`): message `Transaction list`. `data` is the visib
 
 Query: `transaction_id` (integer, required). The order must be visible to this Institution.
 
-Success (`status` `1`): message `Transaction detail`. `data` is one order in that same shape. `payment_details` is null before `payment_pending`. Receipt keys are null until a file is stored.
+Success (`status` `1`): message `Transaction detail`. `data` is one order in that same shape. `payment_details` is null before `payment_pending`. Receipt keys are null until a file is stored. `documents` is `[]` until a file is stored.
 
 Failure (`status` `0`): `Transaction not found`, or the validation message.
 

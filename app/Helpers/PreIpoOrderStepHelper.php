@@ -263,7 +263,65 @@ class PreIpoOrderStepHelper
             'payment_details' => self::paymentDetailsPayload($transaction),
             'payment_receipt' => self::filePayload($transaction->payment?->document),
             'share_transfer_receipt' => self::filePayload(self::shareTransferReceipt($transaction)),
+            'documents' => self::documentsPayload($transaction),
             'created_at' => $transaction->created_at?->toJSON(),
+        ];
+    }
+
+    /**
+     * Stored files for this order: signed buy mandate, signed deal slip,
+     * payment receipt, and share-transfer receipt. Unsigned Digio rows have
+     * no path yet and are omitted.
+     *
+     * @return list<array{id: int, type: string, name: ?string, path: string, url: ?string}>
+     */
+    public static function documentsPayload(PreIpoModel $transaction): array
+    {
+        $rows = DocumentsModel::query()
+            ->whereJsonContains('meta->preipo_transactions', $transaction->id)
+            ->orderBy('id')
+            ->get();
+
+        $documents = [];
+        $seen = [];
+        foreach ($rows as $document) {
+            $item = self::documentListItem($document);
+            if (!$item) {
+                continue;
+            }
+            $seen[$document->id] = true;
+            $documents[] = $item;
+        }
+
+        $paymentDocument = $transaction->payment?->document;
+        if ($paymentDocument && !isset($seen[$paymentDocument->id])) {
+            $item = self::documentListItem($paymentDocument);
+            if ($item) {
+                $documents[] = $item;
+            }
+        }
+
+        return $documents;
+    }
+
+    /**
+     * @return array{id: int, type: string, name: ?string, path: string, url: ?string}|null
+     */
+    public static function documentListItem(DocumentsModel $document): ?array
+    {
+        $item = self::filePayload($document);
+        if (!$item) {
+            return null;
+        }
+
+        $type = $document->type;
+
+        return [
+            'id' => $item['id'],
+            'type' => $type instanceof \BackedEnum ? $type->value : (string) $type,
+            'name' => $item['name'],
+            'path' => $item['path'],
+            'url' => $item['url'],
         ];
     }
 

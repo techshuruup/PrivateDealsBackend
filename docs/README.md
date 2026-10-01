@@ -88,6 +88,7 @@ Pointer stub: [START-HERE.md](START-HERE.md) → redirects to new-system.
 | [api/v2.md](api/v2.md) | Investor / business v2 |
 | [api/app-handoff.md](api/app-handoff.md) | App developer start here — 30 Sep 2026 partner and Institution APIs |
 | [api/order-flow-handoff.md](api/order-flow-handoff.md) | App developer handoff for the new Pre-IPO order flow |
+| [api/transaction-documents-handoff.md](api/transaction-documents-handoff.md) | App note: transaction `documents` list |
 | [api/institution.md](api/institution.md) | Institution partner dashboard, company submit, catalog, promoters, shareholders, deals, and pre-IPO orders |
 | [api/partner.md](api/partner.md) | Partner investor list, investor create, CML KYC, Pre-IPO buy, and self investor id |
 | [api/webhooks-third-party.md](api/webhooks-third-party.md) | Webhooks + sandbox |

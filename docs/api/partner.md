@@ -307,7 +307,7 @@ A row with `order_step` set does not include `status_list`, `current_status`, `p
 
 Each new row has these keys:
 
-`id`, `transaction_invoice_no`, `order_step`, `current_step`, `next_step`, `action` (array of action names, or null), `sign_link` (mandate link on `mandate_pending`, deal-slip link on `deal_slip_pending`, and only when this partner's self investor is the signer and that link exists; otherwise null), `investor` (`id`, `name`), `company` (`id`, `brand_name`, `logo`), `deal_id`, `shares`, `base_price`, `distributer_price`, `share_price`, `investment_amount`, `payable_amount`, `cancellation_reason` (set when `order_step` is `cancelled`, otherwise null), `payment_details` (from `payment_pending` onward: `amount` and CML `account` with `account_holder_name`, `bank_name`, `account_number`, `ifsc_code`; `account` null when that bank row is missing; the whole value is null before `payment_pending`), `payment_receipt` and `share_transfer_receipt` (file `id`, `name`, `path`, `url`, or null), `created_at`.
+`id`, `transaction_invoice_no`, `order_step`, `current_step`, `next_step`, `action` (array of action names, or null), `sign_link` (mandate link on `mandate_pending`, deal-slip link on `deal_slip_pending`, and only when this partner's self investor is the signer and that link exists; otherwise null), `investor` (`id`, `name`), `company` (`id`, `brand_name`, `logo`), `deal_id`, `shares`, `base_price`, `distributer_price`, `share_price`, `investment_amount`, `payable_amount`, `cancellation_reason` (set when `order_step` is `cancelled`, otherwise null), `payment_details` (from `payment_pending` onward: `amount` and CML `account` with `account_holder_name`, `bank_name`, `account_number`, `ifsc_code`; `account` null when that bank row is missing; the whole value is null before `payment_pending`), `payment_receipt` and `share_transfer_receipt` (file `id`, `name`, `path`, `url`, or null), `documents` (array of stored files for this order: signed buy mandate, signed deal slip, payment receipt, share-transfer receipt; each item is `id`, `type`, `name`, `path`, `url`; empty array until a file exists), `created_at`.
 
 The bank on `payment_details.account` is the Institution self investor's CML `user_bank_accounts` row (`seller_investor_id`). It is not `seller_master`.
 
@@ -359,7 +359,7 @@ Only `order_step` `payment_pending`. Stores a `Payment Receipt` document and a `
 }
 ```
 
-Success (`status` `1`): message `Payment receipt uploaded.` `data` is the order, including `payment_receipt`.
+Success (`status` `1`): message `Payment receipt uploaded.` `data` is the order, including `payment_receipt` and that file in `documents`.
 
 Failure (`status` `0`): `Transaction not found`, `This action is not available for the current order step.`, `Payment receipt upload failed.`, or the validation message.
 

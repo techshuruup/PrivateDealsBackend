@@ -282,6 +282,7 @@ class PreIpoOrderStepTest extends TestCase
         ]);
         $this->assertSame(1, $receipt->json('status'), json_encode($receipt->json()));
         $this->assertSame('payment_confirmation_pending', $order->fresh()->order_step);
+        $this->assertSame(['Payment Receipt'], array_column($receipt->json('data.documents'), 'type'));
         $this->assertSame(0, (int) $order->fresh()->status);
 
         $this->actingAs($institution, 'partner-api-guard');
@@ -310,6 +311,10 @@ class PreIpoOrderStepTest extends TestCase
         ]);
         $this->assertSame(1, $transfer->json('status'), json_encode($transfer->json()));
         $this->assertSame('share_transfer_confirmation_pending', $order->fresh()->order_step);
+        $this->assertSame(
+            ['Payment Receipt', 'Pre-IPO Share Transfer Receipt'],
+            array_column($transfer->json('data.documents'), 'type')
+        );
 
         $this->actingAs($buyer, 'partner-api-guard');
         $done = $this->postJson('/api/v2/business/pre-ipo/transaction/confirm-share-transfer', [
@@ -395,8 +400,10 @@ class PreIpoOrderStepTest extends TestCase
             'payment_details',
             'payment_receipt',
             'share_transfer_receipt',
+            'documents',
             'created_at',
         ], array_keys($row));
+        $this->assertIsArray($row['documents']);
         $this->assertArrayHasKey('order_step', $row);
         $this->assertArrayHasKey('current_step', $row);
         $this->assertArrayHasKey('next_step', $row);

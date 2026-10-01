@@ -130,8 +130,9 @@ The buying partner’s list (`GET /api/v2/business/pre-ipo/transaction-list`) ca
 | `payable_amount` | List and detail | Amount due: shares × `share_price` |
 | `cancellation_reason` | List and detail | The reason after cancel or reject. Empty until then |
 | `payment_details` | Detail only | From `payment_pending` through `completed`. Null before that. `amount` is `payable_amount`. `account` is the Institution self investor’s bank (`account_holder_name`, `bank_name`, `account_number`, `ifsc_code`), or null when that account is missing |
-| `payment_receipt` | Detail only | After the partner uploads it: `id`, `name`, `path`, `url`. Otherwise null |
-| `share_transfer_receipt` | Detail only | After the Institution uploads it: `id`, `name`, `path`, `url`. Otherwise null |
+| `payment_receipt` | List and detail | After the partner uploads it: `id`, `name`, `path`, `url`. Otherwise null |
+| `share_transfer_receipt` | List and detail | After the Institution uploads it: `id`, `name`, `path`, `url`. Otherwise null |
+| `documents` | List and detail | Every stored file in one list. See [transaction-documents-handoff.md](transaction-documents-handoff.md) |
 
 Open a receipt with `url`.
 
@@ -174,7 +175,8 @@ Detail while the investor still needs to pay, for the buying partner:
       }
     },
     "payment_receipt": null,
-    "share_transfer_receipt": null
+    "share_transfer_receipt": null,
+    "documents": []
   }
 }
 ```
