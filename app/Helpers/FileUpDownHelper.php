@@ -486,6 +486,22 @@ class FileUpDownHelper
         }
     }
 
+    static function partner_profile_photo_upload($file): string|NULL
+    {
+        $name = CommonHelper::generateFileName() . '.' . $file->getClientOriginalExtension();
+        $path = 'partner/profile_photo/' . $name;
+        $isUploaded = self::uploadFile(
+            $path,
+            $file,
+            'public'
+        );
+        if ($isUploaded) {
+            return $path;
+        } else {
+            return NULL;
+        }
+    }
+
     static function company_exported_category_upload($file): string|NULL
     {
         $name = CommonHelper::generateFileName() . '.' . $file->getClientOriginalExtension();

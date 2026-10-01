@@ -64,6 +64,7 @@ class PartnerModel extends Authenticatable
         'country_id',
         'pincode',
         'gender',
+        'profile_photo',
         'is_verified_mobile',
         'is_verified_email',
         'ask_password_change',

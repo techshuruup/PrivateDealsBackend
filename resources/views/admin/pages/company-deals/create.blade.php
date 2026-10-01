@@ -20,24 +20,24 @@
                     <div class="card-body pt-0">
                         <div class="d-flex flex-wrap gap-10 mb-5">
                             <div class="fv-row w-100 flex-md-root">
-                                <label class="form-label">Added By</label>
-                                <select class="form-select" name="created_by_seller_id" data-control="select2" data-placeholder="Admin (self)">
-                                    <option value="">Admin (self)</option>
-                                    @foreach ($sellers as $seller)
+                                <label class="required form-label">Added By</label>
+                                <select class="form-select" name="created_by_partner_id" data-control="select2" data-placeholder="Select institution" required>
+                                    <option value="">-- Select Institution --</option>
+                                    @foreach ($institutions as $institution)
                                     @php
-                                        $sellerLabel = $seller->company_name ?: ('Seller #' . $seller->id);
-                                        $sellerMobile = trim(($seller->mobile_country_code ?? '') . ' ' . ($seller->mobile_number ?? ''));
-                                        if ($sellerMobile !== '') {
-                                            $sellerLabel .= ' — ' . $sellerMobile;
+                                        $institutionLabel = $institution->name ?: ('Institution #' . $institution->id);
+                                        $institutionMobile = trim(($institution->mobile_country_code ?? '') . ' ' . ($institution->mobile_number ?? ''));
+                                        if ($institutionMobile !== '') {
+                                            $institutionLabel .= ' — ' . $institutionMobile;
                                         }
                                     @endphp
-                                    <option value="{{ $seller->id }}" {{ (string) old('created_by_seller_id') === (string) $seller->id ? 'selected' : '' }}>
-                                        {{ $sellerLabel }}
+                                    <option value="{{ $institution->id }}" {{ (string) old('created_by_partner_id') === (string) $institution->id ? 'selected' : '' }}>
+                                        {{ $institutionLabel }}
                                     </option>
                                     @endforeach
                                 </select>
-                                <div class="form-text">Leave as Admin (self), or pick a seller to attribute this deal to them.</div>
-                                @include('admin.partials.form.input-error-message', ['key' => 'created_by_seller_id'])
+                                <div class="form-text">This deal is added by an Institution.</div>
+                                @include('admin.partials.form.input-error-message', ['key' => 'created_by_partner_id'])
                             </div>
                         </div>
                         <div class="d-flex flex-wrap gap-10 mb-5">

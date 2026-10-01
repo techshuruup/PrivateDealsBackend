@@ -4,13 +4,14 @@ namespace App\Http\Controllers\Web\Admin;
 
 use App\Enums\CompanyDealStatusEnum;
 use App\Enums\CompanyDealTypeEnum;
+use App\Enums\PartnerTypeEnum;
 use App\Helpers\AdminHelper;
 use App\Helpers\CommonHelper;
 use App\Helpers\UtillsHelper;
 use App\Http\Controllers\Controller;
 use App\Models\CompanyDealModel;
 use App\Models\CompanyModel;
-use App\Models\SellerMasterModel;
+use App\Models\PartnerModel;
 use App\Services\CompanyDealPricing;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -173,7 +174,7 @@ class CompanyDealController extends Controller
         $data['companies'] = CompanyModel::where('is_deleted', 0)
             ->orderBy('brand_name')
             ->get(['id', 'brand_name', 'type']);
-        $data['sellers'] = $this->sellerOptions();
+        $data['institutions'] = $this->institutionOptions();
 
         return view('admin.pages.company-deals.create')->with($data);
     }
@@ -182,7 +183,7 @@ class CompanyDealController extends Controller
     {
         $validation = Validator::make($request->all(), [
             'company_id' => 'required|exists:company,id',
-            'created_by_seller_id' => 'nullable|exists:seller_master,id',
+            'created_by_partner_id' => 'required|integer',
             'deal_type' => 'required|in:' . implode(',', array_column(CompanyDealTypeEnum::cases(), 'value')),
             'available_quantity' => 'required|integer|min:0',
             'share_price' => 'required|numeric|min:0',
@@ -202,14 +203,15 @@ class CompanyDealController extends Controller
             return redirect()->back()->withInput()->with('error', 'Company not found');
         }
 
-        $sellerId = $this->resolveSellerId($request->input('created_by_seller_id'));
-        if ($request->filled('created_by_seller_id') && $sellerId === null) {
-            return redirect()->back()->withInput()->with('error', 'Seller not found');
+        $partnerId = $this->resolveInstitutionId($request->input('created_by_partner_id'));
+        if ($partnerId === null) {
+            return redirect()->back()->withInput()->with('error', 'Institution not found');
         }
 
         $deal = new CompanyDealModel();
         $deal->company_id = $request->company_id;
-        $deal->created_by_seller_id = $sellerId;
+        $deal->created_by_seller_id = null;
+        $deal->created_by_partner_id = $partnerId;
         $deal->deal_type = $request->deal_type;
         $deal->available_quantity = $request->available_quantity;
         $deal->minimum_qty = $request->minimum_qty;
@@ -232,7 +234,7 @@ class CompanyDealController extends Controller
 
     public function edit(string $uuid): View|RedirectResponse
     {
-        $item = CompanyDealModel::with('createdBySeller:id,company_name,mobile_number,mobile_country_code,email')
+        $item = CompanyDealModel::with('createdByPartner:id,name,mobile_number,mobile_country_code,email')
             ->where('uuid', $uuid)
             ->where('is_deleted', '0')
             ->first();
@@ -243,7 +245,7 @@ class CompanyDealController extends Controller
             $data['companies'] = CompanyModel::where('is_deleted', 0)
                 ->orderBy('brand_name')
                 ->get(['id', 'brand_name', 'type']);
-            $data['sellers'] = $this->sellerOptions();
+            $data['institutions'] = $this->institutionOptions();
 
             return view('admin.pages.company-deals.edit')->with($data);
         }
@@ -263,7 +265,7 @@ class CompanyDealController extends Controller
 
         $validation = Validator::make($request->all(), [
             'company_id' => 'required|exists:company,id',
-            'created_by_seller_id' => 'nullable|exists:seller_master,id',
+            'created_by_partner_id' => 'required|integer',
             'deal_type' => 'required|in:' . implode(',', array_column(CompanyDealTypeEnum::cases(), 'value')),
             'available_quantity' => 'required|integer|min:0',
             'share_price' => 'required|numeric|min:0',
@@ -283,13 +285,14 @@ class CompanyDealController extends Controller
             return redirect()->back()->withInput()->with('error', 'Company not found');
         }
 
-        $sellerId = $this->resolveSellerId($request->input('created_by_seller_id'));
-        if ($request->filled('created_by_seller_id') && $sellerId === null) {
-            return redirect()->back()->withInput()->with('error', 'Seller not found');
+        $partnerId = $this->resolveInstitutionId($request->input('created_by_partner_id'));
+        if ($partnerId === null) {
+            return redirect()->back()->withInput()->with('error', 'Institution not found');
         }
 
         $item->company_id = $request->company_id;
-        $item->created_by_seller_id = $sellerId;
+        $item->created_by_seller_id = null;
+        $item->created_by_partner_id = $partnerId;
         $item->deal_type = $request->deal_type;
         $item->available_quantity = $request->available_quantity;
         $item->share_price = $request->share_price;
@@ -324,23 +327,27 @@ class CompanyDealController extends Controller
             ->with('error', 'Deal not found');
     }
 
-    private function sellerOptions()
+    private function institutionOptions()
     {
-        return SellerMasterModel::where('is_deleted', '0')
-            ->orderBy('company_name')
-            ->get(['id', 'company_name', 'mobile_number', 'mobile_country_code', 'email']);
+        return PartnerModel::where('is_deleted', '0')
+            ->where('is_demo', '0')
+            ->where('type', PartnerTypeEnum::institution->value)
+            ->orderBy('name')
+            ->get(['id', 'name', 'mobile_number', 'mobile_country_code', 'email']);
     }
 
-    private function resolveSellerId(mixed $sellerId): ?int
+    private function resolveInstitutionId(mixed $partnerId): ?int
     {
-        if ($sellerId === null || $sellerId === '') {
+        if ($partnerId === null || $partnerId === '') {
             return null;
         }
 
-        $seller = SellerMasterModel::where('id', (int) $sellerId)
+        $partner = PartnerModel::where('id', (int) $partnerId)
             ->where('is_deleted', '0')
+            ->where('is_demo', '0')
+            ->where('type', PartnerTypeEnum::institution->value)
             ->first(['id']);
 
-        return $seller?->id;
+        return $partner?->id;
     }
 }
