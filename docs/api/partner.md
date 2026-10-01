@@ -17,6 +17,7 @@ Any authenticated partner type can call these routes. They are not limited to `I
 
 | Method | Path | Purpose |
 |--------|------|---------|
+| GET | `/api/v2/business/company/detail` | Company detail. `deals` is normal (default) or hot |
 | GET | `/api/v2/business/investor` | Investor list; this partner's self investor is first |
 | POST | `/api/v2/business/investor` | Create an investor for the logged-in partner |
 | POST | `/api/v2/business/investor/kyc/cml/read` | Parse a CML PDF for one owned investor |
@@ -27,6 +28,22 @@ Any authenticated partner type can call these routes. They are not limited to `I
 | POST | `/api/v2/business/pre-ipo/transaction/cancel` | Cancel a `mandate_pending` order |
 | POST | `/api/v2/business/pre-ipo/transaction/payment-receipt` | Upload a payment receipt on `payment_pending` |
 | POST | `/api/v2/business/pre-ipo/transaction/confirm-share-transfer` | Complete a `share_transfer_confirmation_pending` order |
+
+---
+
+### GET `/api/v2/business/company/detail`
+
+Auth: partner API token. Any partner type.
+
+Query `slug` is required. Query `deal_type` is optional: `normal` (default) or `hot`. This filter chooses the `deals` list. Each deal row's `deal_type` is still `buy` or `sell`.
+
+`normal`: not deleted, `is_hot_deal` = false, `created_at` today, `status` `available`.
+
+`hot`: not deleted, `is_hot_deal` = true, not expired (`expired_at` null or `expired_at` > now), `status` `available`.
+
+Both lists include buy and sell rows. A row nests `seller` when `created_by_seller_id` is set, and `partner` when `created_by_partner_id` is set. The other creator is null.
+
+Success (`status` `1`): message `Detail`. `data.deals` is the filtered list.
 
 ---
 

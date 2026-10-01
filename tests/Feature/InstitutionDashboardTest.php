@@ -198,6 +198,81 @@ class InstitutionDashboardTest extends TestCase
         $this->assertSame(CompanyApprovalStatusEnum::pending->value, $response->json('data.recent.my_submissions.0.approval_status'));
     }
 
+    public function test_company_detail_deals_filter_normal_by_default_and_hot_when_asked(): void
+    {
+        $institution = $this->makePartner(PartnerTypeEnum::institution);
+        $company = $this->createApprovedCompany($institution);
+
+        $normalSell = $this->makeDeal($company, $institution, [
+            'deal_type' => 'sell',
+            'is_hot_deal' => false,
+            'status' => 'available',
+        ]);
+        $normalBuy = $this->makeDeal($company, $institution, [
+            'deal_type' => 'buy',
+            'is_hot_deal' => false,
+            'status' => 'available',
+        ]);
+        $yesterdayNormal = $this->makeDeal($company, $institution, [
+            'deal_type' => 'sell',
+            'is_hot_deal' => false,
+            'status' => 'available',
+        ]);
+        $yesterdayNormal->created_at = now()->subDay();
+        $yesterdayNormal->save();
+        $soldNormal = $this->makeDeal($company, $institution, [
+            'deal_type' => 'sell',
+            'is_hot_deal' => false,
+            'status' => 'sold',
+        ]);
+        $hotSell = $this->makeDeal($company, $institution, [
+            'deal_type' => 'sell',
+            'is_hot_deal' => true,
+            'status' => 'available',
+            'expired_at' => now()->addDay(),
+        ]);
+        $expiredHot = $this->makeDeal($company, $institution, [
+            'deal_type' => 'buy',
+            'is_hot_deal' => true,
+            'status' => 'available',
+            'expired_at' => now()->subDay(),
+        ]);
+        $soldHot = $this->makeDeal($company, $institution, [
+            'deal_type' => 'sell',
+            'is_hot_deal' => true,
+            'status' => 'sold',
+        ]);
+
+        $this->actingAs($institution, 'partner-api-guard');
+
+        $normal = $this->getJson('/api/v2/business/institution/company/detail?id='.$company->id);
+        $normal->assertOk();
+        $this->assertSame(1, $normal->json('status'), json_encode($normal->json()));
+        $normalUuids = array_column($normal->json('data.deals'), 'uuid');
+        $this->assertSame([$normalSell->uuid, $normalBuy->uuid], $normalUuids);
+        $this->assertNotContains($yesterdayNormal->uuid, $normalUuids);
+        $this->assertNotContains($soldNormal->uuid, $normalUuids);
+        $this->assertNotContains($hotSell->uuid, $normalUuids);
+
+        $hot = $this->getJson('/api/v2/business/institution/company/detail?id='.$company->id.'&deal_type=hot');
+        $hot->assertOk();
+        $this->assertSame(1, $hot->json('status'), json_encode($hot->json()));
+        $hotUuids = array_column($hot->json('data.deals'), 'uuid');
+        $this->assertSame([$hotSell->uuid], $hotUuids);
+        $this->assertNotContains($expiredHot->uuid, $hotUuids);
+        $this->assertNotContains($soldHot->uuid, $hotUuids);
+        $this->assertNotContains($normalSell->uuid, $hotUuids);
+
+        $businessNormal = $this->getJson('/api/v2/business/company/detail?slug='.$company->slug);
+        $businessNormal->assertOk();
+        $this->assertSame(1, $businessNormal->json('status'), json_encode($businessNormal->json()));
+        $this->assertSame([$normalSell->uuid, $normalBuy->uuid], array_column($businessNormal->json('data.deals'), 'uuid'));
+
+        $businessHot = $this->getJson('/api/v2/business/company/detail?slug='.$company->slug.'&deal_type=hot');
+        $businessHot->assertOk();
+        $this->assertSame([$hotSell->uuid], array_column($businessHot->json('data.deals'), 'uuid'));
+    }
+
     private function makeOrder(PartnerModel $institution, InvestorModel $investor, CompanyModel $company, string $step, array $overrides = []): PreIpoModel
     {
         $amount = $overrides['investment_amount'] ?? 100;

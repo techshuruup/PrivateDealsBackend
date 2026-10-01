@@ -445,6 +445,7 @@ class SellerCompanyRepository
             'slug' => 'required_without_all:id,uuid|nullable|string',
             'id' => 'required_without_all:slug,uuid|nullable|integer',
             'uuid' => 'required_without_all:slug,id|nullable|uuid',
+            'deal_type' => 'nullable|in:hot,normal',
         ]);
 
         if ($validation->fails()) {
@@ -458,7 +459,6 @@ class SellerCompanyRepository
                 'promoters',
                 'events' => fn ($q) => $q->orderBy('date', 'desc'),
                 'news' => fn ($q) => $q->orderBy('created_at', 'desc')->limit(10),
-                'deals',
                 'sharePrices' => fn ($q) => $q->orderBy('date', 'desc'),
             ]);
 
@@ -485,6 +485,11 @@ class SellerCompanyRepository
         if (!$isApprovedCatalog && !$isOwner) {
             return UtillsHelper::json(0, ['message' => 'Company not found']);
         }
+
+        $company->setRelation(
+            'deals',
+            $this->detailDeals((int) $company->id, $request->input('deal_type', 'normal'))
+        );
 
         $company->share_holders = $this->formatShareHolders($company->id);
 
@@ -516,6 +521,32 @@ class SellerCompanyRepository
             'message' => 'Company detail',
             'data' => $company,
         ]);
+    }
+
+    /**
+     * Company detail deals. Query deal_type is hot|normal (default normal).
+     * Each row's deal_type is still buy|sell.
+     * normal: not deleted, is_hot_deal false, created today, status available.
+     * hot: not deleted, is_hot_deal true, not expired, status available.
+     */
+    private function detailDeals(int $companyId, string $dealType)
+    {
+        $query = CompanyDealModel::query()
+            ->where('company_id', $companyId)
+            ->notDeleted()
+            ->where('status', CompanyDealStatusEnum::available->value);
+
+        if ($dealType === 'hot') {
+            $query->hot()->notExpired();
+        } else {
+            $query->where('is_hot_deal', false)
+                ->whereDate('created_at', today());
+        }
+
+        return $query
+            ->orderByRaw("FIELD(deal_type, 'sell', 'buy')")
+            ->orderByDesc('id')
+            ->get();
     }
 
     public function mySubmissions(): JsonResponse

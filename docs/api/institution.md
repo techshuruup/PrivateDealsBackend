@@ -192,11 +192,18 @@ Returns an approved company, or this Institution's own submission when `submitte
 {
   "slug": "example", // string — required when id and uuid are omitted
   "id": 12, // integer — required when slug and uuid are omitted
-  "uuid": "…" // string uuid — required when slug and id are omitted
+  "uuid": "…", // string uuid — required when slug and id are omitted
+  "deal_type": "normal" // string optional — normal | hot; default normal. This is the deals list filter. Each deal row's deal_type is still buy | sell
 }
 ```
 
-Success (`status` `1`): message `Company detail`. `data` includes `promoters`, `share_holders` (year groups of `name` + `percentage`), and `seller_share_prices` (today's seller quotes, `sell_price` ascending, nested `seller`). Reading those seller quotes does not write a partner id into a seller id column.
+`data.deals` is both buy and sell rows for that company. The app uses those for the sell and buy buttons. The server applies the rest.
+
+`deal_type` `normal` (the default): not deleted, `is_hot_deal` = false, `created_at` today, `status` `available`. A hot deal, an older normal deal, and a normal deal that is not `available` are left out.
+
+`deal_type` `hot`: not deleted, `is_hot_deal` = true, not expired (`expired_at` null or `expired_at` > now), `status` `available`. An expired hot deal and a hot deal that is not `available` are left out.
+
+Success (`status` `1`): message `Company detail`. `data` includes `promoters`, `share_holders` (year groups of `name` + `percentage`), `deals` (filtered as above), and `seller_share_prices` (today's seller quotes, `sell_price` ascending, nested `seller`). Reading those seller quotes does not write a partner id into a seller id column.
 
 ---
 
@@ -437,7 +444,7 @@ JSON body. Soft-deletes (`is_deleted` = true) one deal owned by this Institution
 
 Success (`status` `1`): message `Deal deleted`. No `data`.
 
-Business company detail (`GET /api/v2/business/company/detail`) includes these deals with the other non-expired deals for that company. When `created_by_partner_id` is set, the deal has nested `partner` (`id`, `uuid`, `name`, `profile_photo`). Seller-created deals still nest `seller` and set `partner` to null. Hot-deal cards do not attach a creator.
+Business company detail (`GET /api/v2/business/company/detail`) filters `deals` with query `deal_type` `normal` (default) or `hot`, same rules as seller and Institution company detail. When `created_by_partner_id` is set, the deal has nested `partner` (`id`, `uuid`, `name`, `profile_photo`). Seller-created deals still nest `seller` and set `partner` to null. Hot-deal cards on home do not attach a creator.
 
 ### GET `/api/v2/business/institution/dashboard`
 

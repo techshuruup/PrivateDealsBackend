@@ -53,7 +53,8 @@ class CommonController extends Controller
         $request = request();
 
         $validation = Validator::make($request->all(), [
-            'slug' => 'required|string'
+            'slug' => 'required|string',
+            'deal_type' => 'nullable|in:hot,normal',
         ]);
 
         if ($validation->fails()) {
@@ -82,26 +83,36 @@ class CommonController extends Controller
                 $query->orderBy('created_at', 'desc')->limit(10);
             },
             'peerratio',
-            'deals' => function ($query) {
-                // All non-deleted, non-expired deals for this company only (any seller, Institution, or admin)
-                $query->notDeleted()
-                    ->notExpired()
-                    ->with([
-                        'createdBySeller:id,uuid,company_name,logo',
-                        'createdByPartner:id,uuid,name,profile_photo,gender',
-                    ])
-                    ->orderByDesc('is_hot_deal')
-                    ->orderByDesc('id');
-            },
         ])->where('slug', $request->slug)->first();
 
         if (!$company) {
             return UtillsHelper::json(0, ['message' => 'Company not found']);
         }
 
+        $dealType = $request->input('deal_type', 'normal');
+        $deals = CompanyDealModel::query()
+            ->where('company_id', $company->id)
+            ->notDeleted()
+            ->where('status', CompanyDealStatusEnum::available->value)
+            ->with([
+                'createdBySeller:id,uuid,company_name,logo',
+                'createdByPartner:id,uuid,name,profile_photo,gender',
+            ]);
+
+        if ($dealType === 'hot') {
+            $deals->hot()->notExpired();
+        } else {
+            $deals->where('is_hot_deal', false)
+                ->whereDate('created_at', today());
+        }
+
         $company->setRelation(
             'deals',
-            $company->deals->map(function (CompanyDealModel $deal) {
+            $deals
+                ->orderByRaw("FIELD(deal_type, 'sell', 'buy')")
+                ->orderByDesc('id')
+                ->get()
+                ->map(function (CompanyDealModel $deal) {
                 $seller = $deal->createdBySeller;
                 $partner = $deal->createdByPartner;
                 $deal->unsetRelation('createdBySeller');
