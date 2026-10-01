@@ -33,8 +33,10 @@ class CompanyDealController extends Controller
         $query = CompanyDealModel::with([
             'company:id,brand_name',
             'createdBySeller:id,company_name,mobile_number,mobile_country_code,email',
+            'createdByPartner:id,name,mobile_number,mobile_country_code,email',
         ])
-            ->where('is_deleted', '0');
+            ->where('is_deleted', '0')
+            ->hot();
 
         if (request()->has('search') && request('search')['value']) {
             $search = request('search')['value'];
@@ -50,6 +52,11 @@ class CompanyDealController extends Controller
                         $sq->where('company_name', 'like', "%{$search}%")
                             ->orWhere('mobile_number', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('createdByPartner', function ($pq) use ($search) {
+                        $pq->where('name', 'like', "%{$search}%")
+                            ->orWhere('mobile_number', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
                     });
             });
         }
@@ -63,7 +70,7 @@ class CompanyDealController extends Controller
             $query->orderByDesc('id');
         }
 
-        $total = CompanyDealModel::where('is_deleted', '0')->count();
+        $total = CompanyDealModel::where('is_deleted', '0')->hot()->count();
         $filtered = $query->count();
 
         $statusBadges = [
@@ -86,8 +93,21 @@ class CompanyDealController extends Controller
                 $dealType = $deal->deal_type ?: CompanyDealTypeEnum::sell->value;
                 $dealTypeBadge = $dealTypeBadges[$dealType] ?? 'badge-light';
                 $dealTypeLabel = ucfirst($dealType);
+                $partner = $deal->createdByPartner;
                 $seller = $deal->createdBySeller;
-                if ($seller) {
+                if ($partner) {
+                    $sellerLabel = trim((string) ($partner->name ?: ''));
+                    if ($sellerLabel === '') {
+                        $sellerLabel = trim(($partner->mobile_country_code ?? '') . ' ' . ($partner->mobile_number ?? ''));
+                    }
+                    if ($sellerLabel === '') {
+                        $sellerLabel = $partner->email ?: ('Institution #' . $partner->id);
+                    }
+                    $sellerHtml = e($sellerLabel);
+                    if (!empty($partner->mobile_number) && $partner->name) {
+                        $sellerHtml .= '<div class="text-muted fs-8">' . e(trim(($partner->mobile_country_code ?? '') . ' ' . $partner->mobile_number)) . '</div>';
+                    }
+                } elseif ($seller) {
                     $sellerLabel = trim((string) ($seller->company_name ?: ''));
                     if ($sellerLabel === '') {
                         $sellerLabel = trim(($seller->mobile_country_code ?? '') . ' ' . ($seller->mobile_number ?? ''));

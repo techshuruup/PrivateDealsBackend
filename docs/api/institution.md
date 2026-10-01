@@ -453,7 +453,7 @@ This route does not write `seller_company_share_price`. An Institution has no se
 
 `access` is this Institution's `is_primary_access`, `is_secondary_access`, and `is_preipo_access` on `PartnerModel` (booleans).
 
-Deals are this Institution's rows only (`company_deals.created_by_partner_id`, `is_deleted` = 0). `available` is status `available` and not expired (`expired_at` null or `expired_at` >= now). `expired` is `expired_at` in the past.
+`summary.deals` and `charts.deals_by_status` count this Institution's hot deals only (`company_deals.created_by_partner_id`, `is_deleted` = 0, `is_hot_deal` = true). Normal share-price deals are not included. `available` is status `available` and not expired (`expired_at` null or `expired_at` >= now). `expired` is `expired_at` in the past.
 
 `summary.companies.pending_approval` is this Institution's submissions (`company.submitted_by_partner_id`, `approval_status` `pending`, `is_deleted` 0). `total_companies` is the approved catalog (`is_deleted` 0 and `approval_status` `approved`), the same global count as the seller dashboard.
 

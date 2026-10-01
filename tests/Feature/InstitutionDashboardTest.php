@@ -124,7 +124,7 @@ class InstitutionDashboardTest extends TestCase
         $this->assertSame(1, $response->json('data.summary.transactions.pending'));
         $this->assertSame(1, $response->json('data.summary.transactions.processing'));
         $this->assertSame(1, $response->json('data.summary.transactions.completed'));
-        $this->assertSame(4, $response->json('data.summary.deals.available'));
+        $this->assertSame(2, $response->json('data.summary.deals.available'));
         $this->assertSame(1, $response->json('data.summary.deals.expired'));
         $this->assertSame(1, $response->json('data.summary.companies.pending_approval'));
         $this->assertSame($expectedCompanies, $response->json('data.summary.companies.total_companies'));
@@ -137,7 +137,7 @@ class InstitutionDashboardTest extends TestCase
             ['key' => 'completed', 'label' => 'Completed', 'count' => 1],
         ], $response->json('data.charts.transaction_status'));
         $this->assertSame([
-            ['key' => 'available', 'count' => 4],
+            ['key' => 'available', 'count' => 2],
             ['key' => 'expired', 'count' => 1],
         ], $response->json('data.charts.deals_by_status'));
 

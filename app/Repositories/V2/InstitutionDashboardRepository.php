@@ -59,7 +59,8 @@ class InstitutionDashboardRepository
 
         $dealBase = CompanyDealModel::query()
             ->where('created_by_partner_id', $partnerId)
-            ->where('is_deleted', 0);
+            ->where('is_deleted', 0)
+            ->hot();
 
         $availableDeals = (clone $dealBase)
             ->where('status', CompanyDealStatusEnum::available->value)
