@@ -1,6 +1,6 @@
 # Feature plan: Pre-IPO partner order notifications
 
-**Status:** Implemented with the `order_step` flow. Where this page says a new WhatsApp template is required, the code sends the in-app notification and logs `Pre-IPO WhatsApp template is not configured`. It does not invent a template id. Existing template names listed below are sent. Demo investors (`is_demo = 1`) skip every send in this matrix.
+**Status:** Implemented with the `order_step` flow. Where this page says a new WhatsApp template is required, the code sends the in-app notification and logs `Pre-IPO WhatsApp template is not configured`. It does not invent a template id. Existing template names listed below are requested from `UtillsHelper::sendWpMessage`, but `WhatsAppSendTrait` currently sends only `otp_verification_sec`. Those Pre-IPO WhatsApp calls are dropped. In-app calls still run, but `NotificationsModel` does not save new rows while `IN_APP_NOTIFICATIONS_ENABLED` is false. Demo investors (`is_demo = 1`) skip every send in this matrix.
 
 Events below key off `order_step` in [workflows/pre-ipo-order-steps.md](../workflows/pre-ipo-order-steps.md). They do not key off integer `status` `0`–`5`. Old orders (`order_step` null) keep today’s status-based sends. New orders (`order_step` set) use this matrix only.
 

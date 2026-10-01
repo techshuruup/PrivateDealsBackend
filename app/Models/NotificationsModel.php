@@ -37,6 +37,21 @@ class NotificationsModel extends Model
 
     protected $table = 'notifications';
 
+    /**
+     * In-app inbox writes are paused. Call sites stay in place.
+     * Set this to true to save notifications again.
+     */
+    public const IN_APP_NOTIFICATIONS_ENABLED = false;
+
+    protected static function booted(): void
+    {
+        static::creating(function () {
+            if (!self::IN_APP_NOTIFICATIONS_ENABLED) {
+                return false;
+            }
+        });
+    }
+
     public function getRedirectToAttribute()
     {
         return $this->payload['redirect_to'] ?? null;

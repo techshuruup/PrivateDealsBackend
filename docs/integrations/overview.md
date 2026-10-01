@@ -5,7 +5,7 @@
 | **Laravel Sanctum** | API user tokens | guards in `config/auth.php` |
 | **AWS S3** | File storage | `FILESYSTEM_DISK=s3`, Flysystem S3 |
 | **Digio** | eSign / KYC PAN verify / documents | `DigioHelper`, digio webhooks |
-| **WhatsApp (11za)** | Messaging + inbound webhook | `WhatsAppMessagesHelper`, jobs, `webhook/11za` |
+| **WhatsApp (11za)** | Messaging + inbound webhook. Outbound send is OTP only (`otp_verification_sec`) until `WhatsAppSendTrait::WHATSAPP_ALLOWED_TEMPLATES` is widened. | `WhatsAppMessagesHelper`, jobs, `webhook/11za` |
 | **Firebase / FCM** | Push notifications | `FCMService`, device token models, Google auth token model |
 | **Google Sign-In** | Investor V2 auth | `GOOGLE_CLIENT_*`, AuthController |
 | **Calendly** | Consultancy booking | env `CALENDLY_*`, webhook, `calendly:sync` |

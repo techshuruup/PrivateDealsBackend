@@ -8,10 +8,10 @@ Deliver WhatsApp, push (FCM), email/SMS, and in-app notifications for KYC, trans
 
 | Channel | Key code | Persistence |
 |---------|----------|-------------|
-| WhatsApp | `WhatsAppMessagesHelper`, Jobs under `Jobs/Whatsapp`, webhook `webhook/11za`. OTP verification uses template `otp_verification_sec` (`UtillsHelper::sendVerificationCode`) | `ReportMessagesWhatsappModel`, replies, broadcasts |
+| WhatsApp | `WhatsAppMessagesHelper`, Jobs under `Jobs/Whatsapp`, webhook `webhook/11za`. **Paused except OTP.** `WhatsAppSendTrait` sends only template `otp_verification_sec` (`UtillsHelper::sendVerificationCode`). Other templates are not queued. Rows already pending are marked failed by the dispatcher and are not sent. | `ReportMessagesWhatsappModel`, replies, broadcasts |
 | Push | `FCMService`, `FirebasePushNotificationSendJob`, `PushNotificationJob` | device tokens `CoreFirebaseDeviceTokenModel`, `NotificationsModel`, broadcast models |
 | Email/SMS | mail config, `SMSHelper`, report email/SMS models | `ReportMessagesEmailModel`, `ReportMessagesSMSModel` |
-| In-app | notification list APIs | `NotificationsModel`, `BroadcastNotificationModel` |
+| In-app | notification list APIs. **Paused.** `NotificationsModel::IN_APP_NOTIFICATIONS_ENABLED` is false, so `creating` cancels every new inbox row (`UtillsHelper::sendNotification`, broadcasts, price alerts, admin create). Existing rows still list. Set the constant to true to save again. | `NotificationsModel`, `BroadcastNotificationModel` |
 
 ## Schedulers
 
@@ -27,6 +27,8 @@ Deliver WhatsApp, push (FCM), email/SMS, and in-app notifications for KYC, trans
 
 ## Risks
 
+- Outbound WhatsApp other than OTP is paused in `WhatsAppSendTrait`. Re-enable by adding template names to `WHATSAPP_ALLOWED_TEMPLATES`.
+- In-app notification inserts are paused on `NotificationsModel`. Re-enable with `IN_APP_NOTIFICATIONS_ENABLED = true`.
 - Dispatchers every 2 minutes require a healthy queue worker.
 - Template/provider changes must stay compatible with webhook reply handling.
 - Do not log full message PII unnecessarily.

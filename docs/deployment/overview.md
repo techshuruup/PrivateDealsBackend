@@ -48,6 +48,8 @@ Repo secrets, not stored in the workflow file: `VPS_HOST`, `VPS_USER`, `VPS_SSH_
 6. Confirm cron + storage permissions + S3 credentials
 7. Smoke-test: admin login, API headtoken, one invest read endpoint, webhook health
 
+`php artisan system:fresh --force` is a manual reset, not a deploy step. It wipes investors, partners, sellers, startups, transactions, logs, and their files on that server and bucket. Admin users, core settings, and the company catalog stay. Details: [modules/admin.md](../modules/admin.md).
+
 ## Storage
 
 - Ensure `storage/` and `bootstrap/cache` writable

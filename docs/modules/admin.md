@@ -49,6 +49,18 @@ Heavy use of: `InvestorModel`, `PartnerModel`, `StartupModel`, `CompanyModel`, `
 - Company share-price OCR and partner WhatsApp PDF sending are admin-only operational tools with side effects (queue jobs).
 - Company list more-options **Share Prices** is a list/filter/delete modal for `company_share_price` history (AJAX). It is separate from sidebar **Update Share Price**.
 
+## Fresh start command
+
+`php artisan system:fresh --force`
+
+One command resets operational data on the database of the machine where it runs, then deletes the matching files on the local disk and the S3 bucket.
+
+It deletes investors, partners, sellers, startups, transactions, KYC, documents, notifications, API logs, webhook logs, WhatsApp/SMS/email logs, error logs, admin tracking, website form submissions, sessions, and queued jobs. It also deletes `storage/logs/laravel*.log`.
+
+It keeps admin users and their roles, `app_settings`, header API tokens, API clients, master data, coupons, and the company catalog (companies, deals, promoters, shareholders, prices, news, events, and company files). Partner and seller ids on `company` and `company_deals` are set to null. Broadcast rows stay, with investor and partner id lists cleared.
+
+Without `--force` the command exits and changes nothing. It is not part of deploy.
+
 ## Common modification points
 
 - New admin screen: controller + Blade view + `routes/web.php` + breadcrumb in `routes/breadcrumbs.php` + permission gate.

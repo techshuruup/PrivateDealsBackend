@@ -16,6 +16,18 @@ use Illuminate\Support\Facades\Log;
 
 trait WhatsAppSendTrait
 {
+    /**
+     * Non-OTP WhatsApp is paused. Only these 11za template names are sent.
+     * Digio signer SMS is unchanged. In-app inbox writes are paused on NotificationsModel.
+     */
+    private const WHATSAPP_ALLOWED_TEMPLATES = [
+        'otp_verification_sec',
+    ];
+
+    private static function whatsAppSendAllowed(string $templateName): bool
+    {
+        return in_array($templateName, self::WHATSAPP_ALLOWED_TEMPLATES, true);
+    }
 
     static function sendWpMessageTrait(
         NotificationTypeEnum $type,
@@ -33,6 +45,10 @@ trait WhatsAppSendTrait
         string $reference_model = NULL,
         int $mobile_country_code = 91
     ): void {
+        if (!self::whatsAppSendAllowed($template_name)) {
+            return;
+        }
+
         $wp = new ReportMessagesWhatsappModel;
         $wp->broadcast_id           = $broadcast_id;
         $wp->type                   = $type;
@@ -57,6 +73,14 @@ trait WhatsAppSendTrait
 
     private static function sendNowWhatsApp(ReportMessagesWhatsappModel $message): void
     {
+        if (!self::whatsAppSendAllowed((string) $message->template_name)) {
+            $message->trycount = $message->trycount + 1;
+            $message->status = MessagesStatusEnum::failed;
+            $message->response = 'Skipped: WhatsApp is paused except OTP (otp_verification_sec).';
+            $message->response_code = 0;
+            $message->save();
+            return;
+        }
 
         $responseCode = 599;
         $status = MessagesStatusEnum::pending;
