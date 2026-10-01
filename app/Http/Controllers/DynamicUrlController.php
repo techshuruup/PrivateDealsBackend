@@ -123,6 +123,9 @@ class DynamicUrlController extends Controller
                 Auth::guard('admin')->loginUsingId($data->admin_id);
                 if (!$transaction) {
                     Session::flash('success', 'Cannot find the transaction.');
+                } elseif ($transaction->usesOrderStep()) {
+                    Session::flash('success', 'This order uses the partner order step flow.');
+                    return redirect()->route('admin.preipotransaction.orderSteps');
                 }
 
                 if ($transaction->status === 0) {
@@ -158,6 +161,11 @@ class DynamicUrlController extends Controller
                     $token->save();
                     Session::flash('success', 'Cannot find the transaction.');
                     return redirect()->route('admin.preipotransaction.market');
+                }
+
+                if ($transaction->usesOrderStep()) {
+                    Session::flash('success', 'This order uses the partner order step flow.');
+                    return redirect()->route('admin.preipotransaction.orderSteps');
                 }
 
                 if ($transaction->status !== 0) {

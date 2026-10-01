@@ -19,6 +19,8 @@ enum DocumentTypeEnum: string
     case preipoapproval = 'Pre-IPO Approval';
     case preiporejection = 'Pre-IPO Rejection';
     case preipodealslip = 'Pre-IPO Deal Slip';
+    case buymandate = 'BuyMandate';
+    case preiposharetransferreceipt = 'Pre-IPO Share Transfer Receipt';
     case aadharfront = 'Aadhar Front';
     case aadharback = 'Aadhar Back';
     case pancard = 'Pan Card';
@@ -89,7 +91,9 @@ enum DocumentTypeEnum: string
         return [
             self::preipoapproval,
             self::preiporejection,
-            self::preipodealslip
+            self::preipodealslip,
+            self::buymandate,
+            self::preiposharetransferreceipt,
         ];
     }
 

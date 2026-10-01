@@ -38,6 +38,9 @@ class PreIpoTimerService
      ──────────────────────────────────────────── */
     public function setOrderPlacedTimer(PreIpoModel $transaction): void
     {
+        if ($transaction->usesOrderStep()) {
+            return;
+        }
         $transaction->transaction_cancel_timer = $this->businessDayService->getNextActiveHours(CommonHelper::appSettings('peripo_admin_order_accept_hours') ?? 2);
         $transaction->timer_desc = 'Order will be accepted within {value}';
         $transaction->saveQuietly();
@@ -51,6 +54,9 @@ class PreIpoTimerService
      ──────────────────────────────────────────── */
     public function setInvestorActionTimer(PreIpoModel $transaction): void
     {
+        if ($transaction->usesOrderStep()) {
+            return;
+        }
         $intHours = (int) (CommonHelper::appSettings('preipo_investor_order_completion_hours') ?? 24);
         // $transaction->transaction_cancel_timer = $this->businessDayService->getNextActiveHours(CommonHelper::appSettings('preipo_investor_order_completion_hours') ?? 24);
         $transaction->transaction_cancel_timer = Carbon::now()->addHours($intHours);
@@ -69,6 +75,9 @@ class PreIpoTimerService
      ──────────────────────────────────────────── */
     public function setShareTransferTimer(PreIpoModel $transaction): void
     {
+        if ($transaction->usesOrderStep()) {
+            return;
+        }
         $transaction->transaction_cancel_timer = $this->businessDayService->getNextActiveHours(CommonHelper::appSettings('preipo_share_tranfer_hours') ?? 12);
         $transaction->timer_desc = 'Shares will be transferred within {value}.';
         $transaction->saveQuietly();
@@ -83,6 +92,9 @@ class PreIpoTimerService
      ──────────────────────────────────────────── */
     public function extendTimer(PreIpoModel $transaction, ?int $extendByHours = null): void
     {
+        if ($transaction->usesOrderStep()) {
+            return;
+        }
         $hoursToAdd = $extendByHours;
 
         if ($hoursToAdd === null) {

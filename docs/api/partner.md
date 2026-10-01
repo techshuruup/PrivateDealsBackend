@@ -1,12 +1,12 @@
 # Partner business API
 
-Source: `routes/api.php` prefix `v2` → `business`. Investor list and create: `App\Http\Controllers\Api\V2\Business\CommonController` (`investorList`, `investorCreate`). CML: `App\Http\Controllers\Api\V2\Business\KycController` (`readCml`, `saveCml`). Save persistence: `App\Services\DematKycService` (`saveDematKyc`). PDF parse: `App\Services\DematPdfParsingService` (`processPdf`). `self_investor_id` is attached in `App\Repositories\PartnerRepository` (`attachSelfInvestorId`) on the existing V1 login and profile methods.
+Source: `routes/api.php` prefix `v2` → `business`. Investor list and create: `App\Http\Controllers\Api\V2\Business\CommonController` (`investorList`, `investorCreate`). Pre-IPO buy: same controller (`preIpoBuy`). CML: `App\Http\Controllers\Api\V2\Business\KycController` (`readCml`, `saveCml`). Save persistence: `App\Services\DematKycService` (`saveDematKyc`). PDF parse: `App\Services\DematPdfParsingService` (`processPdf`). `self_investor_id` is attached in `App\Repositories\PartnerRepository` (`attachSelfInvestorId`) on the existing V1 login and profile methods.
 
 Institution company submit and company deals are not on this page. Those routes are in [institution.md](institution.md).
 
 ## Auth
 
-Investor list, investor create, and CML sit under `ApiHeaderAuthMiddleware` and `auth:partner-api-guard`.
+Investor list, investor create, CML, Pre-IPO buy, and the buying-partner order-step routes sit under `ApiHeaderAuthMiddleware` and `auth:partner-api-guard`.
 
 - Header `headtoken` — app header token.
 - Header `Authorization: Bearer <token>` — Sanctum token for a `PartnerModel` (`partner-api-guard`).
@@ -21,6 +21,12 @@ Any authenticated partner type can call these routes. They are not limited to `I
 | POST | `/api/v2/business/investor` | Create an investor for the logged-in partner |
 | POST | `/api/v2/business/investor/kyc/cml/read` | Parse a CML PDF for one owned investor |
 | POST | `/api/v2/business/investor/kyc/cml/save` | Save demat KYC and set `preipo_kyc_status` = `1` |
+| POST | `/api/v2/business/pre-ipo/buy` | Place one or more Pre-IPO buy orders on Institution sell deals |
+| GET | `/api/v2/business/pre-ipo/transaction-list` | This partner's Pre-IPO orders. An `order_step` row is the new payload only |
+| GET | `/api/v2/business/pre-ipo/transaction/detail` | One order this partner can act for |
+| POST | `/api/v2/business/pre-ipo/transaction/cancel` | Cancel a `mandate_pending` order |
+| POST | `/api/v2/business/pre-ipo/transaction/payment-receipt` | Upload a payment receipt on `payment_pending` |
+| POST | `/api/v2/business/pre-ipo/transaction/confirm-share-transfer` | Complete a `share_transfer_confirmation_pending` order |
 
 ---
 
@@ -209,6 +215,154 @@ On success, `DematKycService::saveDematKyc` sets that investor's `preipo_kyc_sta
 Success (`status` `1`): message `KYC details saved successfully.` No `data`.
 
 Failure (`status` `0`): message `Failed to save KYC details.` and `error` when the service returns one. An investor outside the ownership rule returns `Investor not found` and does not change `preipo_kyc_status`.
+
+---
+
+### POST `/api/v2/business/pre-ipo/buy`
+
+Auth: partner API token. `Api\V2\Business\CommonController::preIpoBuy`.
+
+Places one or more Pre-IPO buy orders. Every item is checked before any insert. One failure returns `status` `0` and inserts nothing. Success is one database transaction, one `pre_ipo_transaction` row per item.
+
+This does not change V1 buy or V2 investor `POST /api/v2/investor/pre-ipo/buy`.
+
+```
+{
+  "orders": [ // array required — minimum 1
+    {
+      "deal_id": 1, // integer required — see deal rules below
+      "investor_id": 2, // integer required — owned investor; same ownership as cml/read
+      "shares": 10, // integer required — minimum 1, and at least the deal minimum_qty
+      "share_price": 102 // numeric required — price this partner quotes the investor
+    }
+  ]
+}
+```
+
+Deal (`deal_id`). The deal is not deleted, not expired, `status` is `available`, `deal_type` is `sell`, and `created_by_partner_id` is set. A null `created_by_partner_id` is rejected. There is no seller fallback. `company_id` on the order is the deal's `company_id`.
+
+Investor (`investor_id`). Same ownership as CML read: not deleted, and either a non-self investor of this partner or one of their relation managers, or this partner's self investor. Another partner's investor is rejected.
+
+Shares. When `available_quantity` is greater than 0, shares must not exceed it. Repeated `deal_id` values in the same request are added together and must still fit. `available_quantity` is not decremented.
+
+`share_price` has no minimum against the deal price.
+
+Not accepted from the client (ignored if sent): `distributer_price`, `payment_mode`, `is_distributer`, `seller_id`, `partner_id`. No coupons.
+
+Saved on each row (`status` stays `0`, `order_step` is `mandate_pending`):
+
+| Column | Value |
+|--------|--------|
+| `investor_id` | Client on the item |
+| `company_id` | Deal `company_id` |
+| `deal_id` | Deal id |
+| `partner_id` | Deal `created_by_partner_id` (the Institution), not the logged-in partner |
+| `seller_investor_id` | Institution self investor (`investor.partner_id` = that Institution, `is_self` = `1`, not deleted). A missing self investor rejects the item |
+| `seller_id` | null |
+| `base_price` | Deal `base_price` (example 99, what the Institution entered). A null `base_price` rejects the item |
+| `distributer_price` | Deal `share_price` (example 100, base plus the admin processing fee) |
+| `share_price` | Item `share_price` (example 102) |
+| `investment_amount`, `payable_amount` | `shares * share_price` |
+| `is_distributer` | true |
+| `payment_mode` | `RTGS` |
+| `instrument` | `equity` |
+| `order_step` | `mandate_pending` |
+
+The partner keeps `share_price - distributer_price` per share (102 − 100 = 2). The Private Deals fee is inside `distributer_price` (100 − 99).
+
+Success (`status` `1`): message `Orders placed successfully.` when every buy mandate was sent to Digio. If a mandate send fails, the orders are still saved and the message is `Orders placed. The buy mandate could not be sent.` Each item in `data` is the order-step payload below, plus `mandate_sent`. Integer `status` stays `0` and is not in that payload. Printed mandate expiry is 7 days after `created_at`. See [pre-ipo-order-steps.md](../workflows/pre-ipo-order-steps.md).
+
+Failure (`status` `0`): the first failed item's message. Nothing is inserted.
+
+---
+
+### GET `/api/v2/business/pre-ipo/transaction-list`
+
+Auth: partner API token. `Api\V2\Business\CommonController::preIpoTransactionList`.
+
+Query: `skip` (optional integer, default 0), `take` (optional integer, default app pagination limit).
+
+Orders whose `investor_id` is in the same set as `GET /api/v2/business/investor` (this partner, their relation managers' non-self investors, and this partner's self investor).
+
+Old rows (`order_step` null) keep `status_list` from `PreIpoTransactionHelper::getStatusListForApplicationV2` and omit `order_step`.
+
+A row with `order_step` set does not include `status_list`, `current_status`, `percentage`, `is_processing`, `deal_slip`, `approval_file`, `rejection_file`, integer `status`, or `seller_master` bank fields. `current_step` and `next_step` are the buying-partner labels from `PreIpoOrderStepHelper::labels`. They are not the old `PreIpoModel` status `0`–`5` strings.
+
+Each new row has these keys:
+
+`id`, `transaction_invoice_no`, `order_step`, `current_step`, `next_step`, `action` (array of action names, or null), `sign_link` (mandate link on `mandate_pending`, deal-slip link on `deal_slip_pending`, and only when this partner's self investor is the signer and that link exists; otherwise null), `investor` (`id`, `name`), `company` (`id`, `brand_name`, `logo`), `deal_id`, `shares`, `base_price`, `distributer_price`, `share_price`, `investment_amount`, `payable_amount`, `cancellation_reason` (set when `order_step` is `cancelled`, otherwise null), `payment_details` (from `payment_pending` onward: `amount` and CML `account` with `account_holder_name`, `bank_name`, `account_number`, `ifsc_code`; `account` null when that bank row is missing; the whole value is null before `payment_pending`), `payment_receipt` and `share_transfer_receipt` (file `id`, `name`, `path`, `url`, or null), `created_at`.
+
+The bank on `payment_details.account` is the Institution self investor's CML `user_bank_accounts` row (`seller_investor_id`). It is not `seller_master`.
+
+Success (`status` `1`): message `Transaction List`. `data` is the page of orders. A page can mix old rows and new rows.
+
+---
+
+### GET `/api/v2/business/pre-ipo/transaction/detail`
+
+Auth: partner API token. `Api\V2\Business\PreIpoOrderController::detail`.
+
+Query: `transaction_id` (integer, required). The order's investor must be in the same scope as `GET /api/v2/business/investor`, and `order_step` must be set.
+
+Success (`status` `1`): message `Transaction detail`. `data` is the same new-row object as the list (keys above). Cancel, payment-receipt, and confirm-share-transfer return that same object.
+
+Failure (`status` `0`): `Transaction not found`, or the validation message.
+
+---
+
+### POST `/api/v2/business/pre-ipo/transaction/cancel`
+
+Auth: partner API token. `Api\V2\Business\PreIpoOrderController::cancel`.
+
+Only `order_step` `mandate_pending`. Integer `status` stays `0`.
+
+```
+{
+  "transaction_id": 1, // integer required
+  "reason": "Investor changed their mind" // string required, max 1000
+}
+```
+
+Success (`status` `1`): message `Transaction cancelled.` `data` is the order. `order_step` is `cancelled` and `cancellation_reason` is the reason.
+
+Failure (`status` `0`): `Transaction not found`, `This action is not available for the current order step.`, or the validation message.
+
+---
+
+### POST `/api/v2/business/pre-ipo/transaction/payment-receipt`
+
+Auth: partner API token. `Api\V2\Business\PreIpoOrderController::paymentReceipt`. Multipart.
+
+Only `order_step` `payment_pending`. Stores a `Payment Receipt` document and a `pre_ipo_transaction_payments` row, then sets `order_step` to `payment_confirmation_pending`. Integer `status` stays `0`.
+
+```
+{
+  "transaction_id": 1, // integer required
+  "file": null // file required — png, jpg, jpeg, or pdf; max file_document_max_size MB
+}
+```
+
+Success (`status` `1`): message `Payment receipt uploaded.` `data` is the order, including `payment_receipt`.
+
+Failure (`status` `0`): `Transaction not found`, `This action is not available for the current order step.`, `Payment receipt upload failed.`, or the validation message.
+
+---
+
+### POST `/api/v2/business/pre-ipo/transaction/confirm-share-transfer`
+
+Auth: partner API token. `Api\V2\Business\PreIpoOrderController::confirmShareTransfer`.
+
+Only `order_step` `share_transfer_confirmation_pending`. Sets `order_step` to `completed` and writes `portfolio_preipo` through `UtillsHelper::preIpoPortfolio`. `portfolio_id` is that row. Integer `status` stays `0`.
+
+```
+{
+  "transaction_id": 1 // integer required
+}
+```
+
+Success (`status` `1`): message `Transaction completed.` `data` is the order.
+
+Failure (`status` `0`): `Transaction not found`, `This action is not available for the current order step.`, or the validation message.
 
 ---
 

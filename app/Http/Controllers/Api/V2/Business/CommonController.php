@@ -2,16 +2,22 @@
 
 namespace App\Http\Controllers\Api\V2\Business;
 
+use App\Enums\CompanyDealStatusEnum;
+use App\Enums\CompanyDealTypeEnum;
 use App\Enums\CompanyTypeEnum;
 use App\Enums\GenderEnum;
+use App\Enums\InstrumentTypeEnum;
 use App\Enums\InvestorTypeEnum;
 use App\Enums\PartnerTypeEnum;
 use App\Enums\PreIpoCategoryEnum;
+use App\Enums\PreIpoOrderStepEnum;
+use App\Enums\PrimaryTransactionPaymentMode;
 use App\Enums\StartupPrimaryRoundStatusEnum;
 use App\Enums\Utills\StatusEnum;
 use App\Helpers\CommonHelper;
 use App\Helpers\FileUpDownHelper;
-use App\Helpers\PreIpoTransactionHelper;
+use App\Helpers\PreIpoOrderStepHelper;
+use App\Helpers\SettlementDateHelper;
 use App\Helpers\UtillsHelper;
 use App\Http\Controllers\Controller;
 use App\Models\CompanyDailySharePriceModel;
@@ -28,12 +34,14 @@ use App\Models\PreIpoModel;
 use App\Models\SellerCompanySharePriceModel;
 use App\Models\StartupModel;
 use App\Models\StartupRoundModel;
+use App\Services\PreIpoOrderStepService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Throwable;
 
 class CommonController extends Controller
 {
@@ -315,27 +323,178 @@ class CommonController extends Controller
             $take = 15;
         }
 
-        $transactions = PreIpoModel::whereHas('investor', function ($query) use ($request) {
-            $query->where('partner_id', $request->user()->id);
-        })->with(['company:id,uuid,brand_name,logo', 'investor:id,name'])
+        $partner = $request->user();
+        $investorIds = PreIpoOrderStepHelper::buyingPartnerInvestorIds($partner);
+        $transactions = PreIpoModel::whereIn('investor_id', $investorIds === [] ? [0] : $investorIds)
+            ->with(['company:id,uuid,brand_name,logo', 'investor:id,name,is_self,partner_id'])
             ->orderBy('id', 'desc')
             ->skip($skip)
             ->take($take)
             ->get()
             ->map(function ($transaction) {
-                $transaction->company?->setAppends([]);
-                $transaction->status_list = PreIpoTransactionHelper::getStatusListForApplicationV2($transaction);
-
-                if (in_array($transaction->status, [1, 5])) {
-                    $transaction->makeHidden('transaction_cancel_timer');
-                }
-                return $transaction;
+                return PreIpoOrderStepHelper::map($transaction, PreIpoOrderStepHelper::AUDIENCE_PARTNER);
             });
 
         return UtillsHelper::json(1, [
             'message' => 'Transaction List',
             'data' => $transactions
         ], 200);
+    }
+
+    function preIpoBuy(): JsonResponse
+    {
+        $request = request();
+        $validation = Validator::make($request->all(), [
+            'orders' => 'required|array|min:1',
+            'orders.*.deal_id' => 'required|integer|min:1',
+            'orders.*.investor_id' => 'required|integer|min:1',
+            'orders.*.shares' => 'required|integer|min:1',
+            'orders.*.share_price' => 'required|numeric',
+        ]);
+
+        if ($validation->fails()) {
+            return UtillsHelper::json(0, ['message' => $validation->errors()->first()]);
+        }
+
+        $partner = $request->user();
+        $prepared = [];
+        $sharesByDeal = [];
+
+        foreach ($request->input('orders') as $index => $item) {
+            $label = 'Order '.($index + 1);
+            $investor = $this->partnerAccessibleInvestor($partner, (int) $item['investor_id']);
+            if (!$investor) {
+                return UtillsHelper::json(0, ['message' => $label.': Investor is not available for this partner.']);
+            }
+
+            $deal = CompanyDealModel::query()
+                ->whereKey($item['deal_id'])
+                ->notDeleted()
+                ->notExpired()
+                ->where('status', CompanyDealStatusEnum::available->value)
+                ->where('deal_type', CompanyDealTypeEnum::sell->value)
+                ->whereNotNull('created_by_partner_id')
+                ->first();
+
+            if (!$deal) {
+                return UtillsHelper::json(0, ['message' => $label.': Deal is not available.']);
+            }
+
+            if ($deal->base_price === null) {
+                return UtillsHelper::json(0, ['message' => $label.': Deal base price is missing.']);
+            }
+
+            $shares = (int) $item['shares'];
+            if ($shares < (int) $deal->minimum_qty) {
+                return UtillsHelper::json(0, ['message' => $label.': Shares are below the deal minimum quantity.']);
+            }
+
+            if ((int) $deal->available_quantity > 0 && $shares > (int) $deal->available_quantity) {
+                return UtillsHelper::json(0, ['message' => $label.': Shares exceed the deal available quantity.']);
+            }
+
+            $sellerInvestor = InvestorModel::query()
+                ->where('partner_id', $deal->created_by_partner_id)
+                ->where('is_self', 1)
+                ->where('is_deleted', 0)
+                ->orderBy('id')
+                ->first();
+
+            if (!$sellerInvestor) {
+                return UtillsHelper::json(0, ['message' => $label.': Institution self investor was not found.']);
+            }
+
+            $dealId = (int) $deal->id;
+            $sharesByDeal[$dealId] = ($sharesByDeal[$dealId] ?? 0) + $shares;
+            $amount = round($shares * (float) $item['share_price'], 2);
+
+            $prepared[] = [
+                'investor_id' => $investor->id,
+                'company_id' => $deal->company_id,
+                'deal_id' => $dealId,
+                'partner_id' => $deal->created_by_partner_id,
+                'seller_investor_id' => $sellerInvestor->id,
+                'shares' => $shares,
+                'base_price' => $deal->base_price,
+                'distributer_price' => $deal->share_price,
+                'share_price' => $item['share_price'],
+                'amount' => $amount,
+                'available_quantity' => (int) $deal->available_quantity,
+            ];
+        }
+
+        foreach ($prepared as $index => $row) {
+            if ($row['available_quantity'] > 0 && $sharesByDeal[$row['deal_id']] > $row['available_quantity']) {
+                return UtillsHelper::json(0, [
+                    'message' => 'Order '.($index + 1).': Combined shares exceed the deal available quantity.',
+                ]);
+            }
+        }
+
+        try {
+            $transactions = DB::transaction(function () use ($prepared) {
+                $created = [];
+                $settlementDate = SettlementDateHelper::getT1SettlementDate(now())->format('Y-m-d');
+                $cancelTimer = now()->addHours(97);
+
+                foreach ($prepared as $row) {
+                    $transaction = new PreIpoModel();
+                    $transaction->status = 0;
+                    $transaction->investor_id = $row['investor_id'];
+                    $transaction->company_id = $row['company_id'];
+                    $transaction->deal_id = $row['deal_id'];
+                    $transaction->partner_id = $row['partner_id'];
+                    $transaction->seller_investor_id = $row['seller_investor_id'];
+                    $transaction->seller_id = null;
+                    $transaction->shares = $row['shares'];
+                    $transaction->base_price = $row['base_price'];
+                    $transaction->distributer_price = $row['distributer_price'];
+                    $transaction->share_price = $row['share_price'];
+                    $transaction->investment_amount = $row['amount'];
+                    $transaction->payable_amount = $row['amount'];
+                    $transaction->is_distributer = true;
+                    $transaction->payment_mode = PrimaryTransactionPaymentMode::rtgs;
+                    $transaction->instrument = InstrumentTypeEnum::equity;
+                    $transaction->settlement_date = $settlementDate;
+                    $transaction->transaction_cancel_timer = $cancelTimer;
+                    $transaction->order_step = PreIpoOrderStepEnum::mandate_pending->value;
+                    $transaction->save();
+                    $created[] = $transaction->fresh();
+                }
+
+                return $created;
+            });
+        } catch (Throwable $e) {
+            return UtillsHelper::json(0, ['message' => $e->getMessage()]);
+        }
+
+        $mandateFailures = 0;
+        $data = [];
+        foreach ($transactions as $transaction) {
+            $sent = false;
+            try {
+                $sent = app(PreIpoOrderStepService::class)->sendBuyMandate($transaction);
+            } catch (Throwable $e) {
+                report($e);
+                $sent = false;
+            }
+            if (!$sent) {
+                $mandateFailures++;
+            }
+            $row = PreIpoOrderStepHelper::map(
+                $transaction->fresh(['company', 'investor']),
+                PreIpoOrderStepHelper::AUDIENCE_PARTNER
+            );
+            $row['mandate_sent'] = $sent;
+            $data[] = $row;
+        }
+
+        return UtillsHelper::json(1, [
+            'message' => $mandateFailures > 0
+                ? 'Orders placed. The buy mandate could not be sent.'
+                : 'Orders placed successfully.',
+            'data' => $data,
+        ]);
     }
 
     function investorDetail(): JsonResponse
@@ -1192,6 +1351,27 @@ class CommonController extends Controller
                 ];
             })
             ->values();
+    }
+
+    private function partnerAccessibleInvestor($partner, int $investorId): ?InvestorModel
+    {
+        $partnerIds = PartnerModel::select('id')
+            ->where('parent_id', $partner->id)
+            ->where('type', PartnerTypeEnum::relationmanager->value)
+            ->pluck('id');
+        $partnerIds->push($partner->id);
+
+        return InvestorModel::query()
+            ->where('id', $investorId)
+            ->where('is_deleted', 0)
+            ->where(function ($query) use ($partner, $partnerIds) {
+                $query->where(function ($clients) use ($partnerIds) {
+                    $clients->whereIn('partner_id', $partnerIds)->where('is_self', 0);
+                })->orWhere(function ($self) use ($partner) {
+                    $self->where('partner_id', $partner->id)->where('is_self', 1);
+                });
+            })
+            ->first();
     }
 
     private function applyPartnerInvestorListFilters($investorQuery, $request): void

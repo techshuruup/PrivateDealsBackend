@@ -22,14 +22,19 @@ class PreIpoModel extends Model
 
 
     protected $fillable = [
+        'order_step',
         'transaction_invoice_no',
         'status',
         'investor_id',
         'company_id',
         'portfolio_id',
         'seller_id',
+        'deal_id',
+        'partner_id',
+        'seller_investor_id',
         'shares',
         'share_price',
+        'base_price',
         'distributer_price',
         'shuru_price',
         'investment_amount',
@@ -88,6 +93,10 @@ class PreIpoModel extends Model
             }
         });
         static::created(function ($transaction) {
+            if ($transaction->usesOrderStep()) {
+                return;
+            }
+
             if ($transaction->created_by == NULL) {
                 BuyNotificationJob::dispatch($transaction->id);
             }
@@ -127,6 +136,21 @@ class PreIpoModel extends Model
         return $this->belongsTo(SellerMasterModel::class, 'seller_id');
     }
 
+    public function deal(): BelongsTo
+    {
+        return $this->belongsTo(CompanyDealModel::class, 'deal_id');
+    }
+
+    public function partner(): BelongsTo
+    {
+        return $this->belongsTo(PartnerModel::class, 'partner_id');
+    }
+
+    public function sellerInvestor(): BelongsTo
+    {
+        return $this->belongsTo(InvestorModel::class, 'seller_investor_id');
+    }
+
     public function investor(): BelongsTo
     {
         return $this->belongsTo(InvestorModel::class, 'investor_id');
@@ -139,8 +163,16 @@ class PreIpoModel extends Model
 
     protected $appends = ['percentage', 'current_status', 'next_step', 'deal_slip', 'approval_file', 'rejection_file', 'is_processing'];
 
+    public function usesOrderStep(): bool
+    {
+        return filled($this->order_step);
+    }
+
     public function getCurrentStatusAttribute(): string
     {
+        if ($this->usesOrderStep()) {
+            return '';
+        }
         switch ($this->status) {
             case 0:
                 return 'Processing';
@@ -161,6 +193,9 @@ class PreIpoModel extends Model
 
     public function getIsProcessingAttribute(): bool
     {
+        if ($this->usesOrderStep()) {
+            return false;
+        }
         // Processing flag is true for statuses 0, 2, 3, 4 (in progress)
         // Processing flag is false for statuses 1, 5 (terminal states - rejected or completed)
         return in_array($this->status, [0, 2, 3, 4]);
@@ -168,6 +203,9 @@ class PreIpoModel extends Model
 
     public function getNextStepAttribute(): string
     {
+        if ($this->usesOrderStep()) {
+            return '';
+        }
         switch ($this->status) {
             case 0:
                 if ($this->investor?->preipo_kyc_status) {
@@ -206,6 +244,9 @@ class PreIpoModel extends Model
 
     public function getPercentageAttribute()
     {
+        if ($this->usesOrderStep()) {
+            return null;
+        }
         return $this->status == 1 ? 100 : $this->status * 20;
     }
 

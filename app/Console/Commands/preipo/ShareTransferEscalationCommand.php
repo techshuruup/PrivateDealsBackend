@@ -31,6 +31,7 @@ class ShareTransferEscalationCommand extends Command
         $now = Carbon::now();
 
         $overdueTransactions = PreIpoModel::where('status', 4)
+            ->whereNull('order_step')
             ->whereNotNull('transaction_cancel_timer')
             ->where('transaction_cancel_timer', '<=', $now)
             ->with(['investor', 'company'])

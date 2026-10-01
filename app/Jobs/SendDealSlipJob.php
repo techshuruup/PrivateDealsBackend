@@ -27,6 +27,9 @@ class SendDealSlipJob implements ShouldQueue
     {
         $transaction = PreIpoModel::find($this->transactionId);
         if ($transaction) {
+            if ($transaction->usesOrderStep()) {
+                return;
+            }
             DocumentHelper::dealSlipDocumentSend($transaction, $this->ignoreKycCheck);
         }
     }

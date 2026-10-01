@@ -38,6 +38,16 @@ Verify docs still accurate
 
 Update the **canonical** document. Do not create `feature-x-v2.md` duplicates.
 
+## Partner API pages
+
+A new or changed route under `/api/v2/business/` that any logged-in partner can call is written in [api/partner.md](../api/partner.md) in the same task: one table row, then the request, rules, and saved fields.
+
+Also add a short line in [api/v2.md](../api/v2.md) that points at `partner.md`. The field-level copy stays on `partner.md`.
+
+Institution-only routes (`/api/v2/business/institution/...`) stay in [api/institution.md](../api/institution.md). Do not put those on `partner.md`.
+
+If the call changes an order step or a saved column, update the matching workflow or feature page in the same task.
+
 ## Removal / deprecation
 
 Remove dead references; mark deprecated only when historical context helps; update diagrams/index.

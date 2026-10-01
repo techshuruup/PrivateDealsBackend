@@ -491,6 +491,7 @@ class SessionBuiltFeaturesTest extends TestCase
 
         $partner = PartnerModel::where('email', $email)->first();
         $this->assertNotNull($partner, (string) session('error'));
+        $this->assertSame('KYC Person Name', $partner->name);
         $investors = InvestorModel::where('partner_id', $partner->id)->where('is_self', 1)->get();
         $this->assertCount(1, $investors);
         $this->assertSame('KYC Person Name', $investors->first()->name);

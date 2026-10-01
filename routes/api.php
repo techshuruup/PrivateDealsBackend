@@ -17,8 +17,11 @@ use App\Http\Controllers\Api\V1\Startup\StartupController as ApiV1StartupControl
 use App\Http\Controllers\Api\V2\Business\CommonController as ApiV2BusinessCommonController;
 use App\Http\Controllers\Api\V2\Business\CompanyController as ApiV2BusinessCompanyController;
 use App\Http\Controllers\Api\V2\Business\EnquiryController as ApiV2BusinessEnquiryController;
+use App\Http\Controllers\Api\V2\Business\InstitutionDashboardController as ApiV2InstitutionDashboardController;
+use App\Http\Controllers\Api\V2\Business\InstitutionPreIpoOrderController as ApiV2InstitutionPreIpoOrderController;
 use App\Http\Controllers\Api\V2\Business\KycController as ApiV2BusinessKycController;
 use App\Http\Controllers\Api\V2\Business\PortfolioController as ApiV2BusinessPortfolioController;
+use App\Http\Controllers\Api\V2\Business\PreIpoOrderController as ApiV2BusinessPreIpoOrderController;
 use App\Http\Controllers\Api\V2\Investor\AuthController as ApiV2InvestorAuthController;
 use App\Http\Controllers\Api\V2\Investor\CommonController as ApiV2InvestorCommonController;
 use App\Http\Controllers\Api\V2\Investor\PriceAlertController as ApiV2InvestorPriceAlertController;
@@ -565,6 +568,7 @@ Route::group(['middleware' => [ApiHeaderAuthMiddleware::class]], function () {
                 });
 
                 Route::prefix('institution')->name('institution.')->group(function () {
+                    Route::get('dashboard', [ApiV2InstitutionDashboardController::class, 'index']);
                     Route::prefix('company')->name('company.')->group(function () {
                         Route::post('check-duplicate', [ApiV2BusinessCompanyController::class, 'checkDuplicate']);
                         Route::post('', [ApiV2BusinessCompanyController::class, 'create']);
@@ -582,6 +586,14 @@ Route::group(['middleware' => [ApiHeaderAuthMiddleware::class]], function () {
                             Route::post('update', [ApiV2BusinessCompanyController::class, 'updateDeal']);
                             Route::post('delete', [ApiV2BusinessCompanyController::class, 'deleteDeal']);
                         });
+                    });
+                    Route::prefix('pre-ipo')->name('preipo.')->group(function () {
+                        Route::get('transaction', [ApiV2InstitutionPreIpoOrderController::class, 'list']);
+                        Route::get('transaction/detail', [ApiV2InstitutionPreIpoOrderController::class, 'detail']);
+                        Route::post('transaction/approve', [ApiV2InstitutionPreIpoOrderController::class, 'approve']);
+                        Route::post('transaction/reject', [ApiV2InstitutionPreIpoOrderController::class, 'reject']);
+                        Route::post('transaction/confirm-payment', [ApiV2InstitutionPreIpoOrderController::class, 'confirmPayment']);
+                        Route::post('transaction/share-transfer-receipt', [ApiV2InstitutionPreIpoOrderController::class, 'shareTransferReceipt']);
                     });
                 });
                 Route::prefix('startup')->name('startup.')->group(function () {
@@ -608,6 +620,11 @@ Route::group(['middleware' => [ApiHeaderAuthMiddleware::class]], function () {
 
                 Route::prefix('pre-ipo')->name('preipo.')->group(function () {
                     Route::get('transaction-list', [ApiV2BusinessCommonController::class, 'preIpoTransactionList']);
+                    Route::get('transaction/detail', [ApiV2BusinessPreIpoOrderController::class, 'detail']);
+                    Route::post('transaction/cancel', [ApiV2BusinessPreIpoOrderController::class, 'cancel']);
+                    Route::post('transaction/payment-receipt', [ApiV2BusinessPreIpoOrderController::class, 'paymentReceipt']);
+                    Route::post('transaction/confirm-share-transfer', [ApiV2BusinessPreIpoOrderController::class, 'confirmShareTransfer']);
+                    Route::post('buy', [ApiV2BusinessCommonController::class, 'preIpoBuy']);
                 });
 
                 Route::prefix('enquiries')->name('enquiries.')->group(function () {

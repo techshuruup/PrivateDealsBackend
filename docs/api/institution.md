@@ -1,6 +1,6 @@
 # Institution partner company and deals API
 
-Source: `routes/api.php` prefix `v2` → `business` → `institution`. Controller: `App\Http\Controllers\Api\V2\Business\CompanyController`. Persistence: `App\Repositories\V2\SellerCompanyRepository` (`checkDuplicate`, `createForInstitution` → `persistPendingCompany`, `sectors`, `listLite`, `listForInstitution`, `detailForInstitution`, `mySubmissionsForInstitution`, `savePromoters`, `saveShareholders`, `listInstitutionDeals`, `createInstitutionDeal`, `createInstitutionDealsBulk`, `updateInstitutionDeal`, `deleteInstitutionDeal`). Pricing: `App\Services\CompanyDealPricing`.
+Source: `routes/api.php` prefix `v2` → `business` → `institution`. Controller: `App\Http\Controllers\Api\V2\Business\CompanyController`. Persistence: `App\Repositories\V2\SellerCompanyRepository` (`checkDuplicate`, `createForInstitution` → `persistPendingCompany`, `sectors`, `listLite`, `listForInstitution`, `detailForInstitution`, `mySubmissionsForInstitution`, `savePromoters`, `saveShareholders`, `listInstitutionDeals`, `createInstitutionDeal`, `createInstitutionDealsBulk`, `updateInstitutionDeal`, `deleteInstitutionDeal`). Pricing: `App\Services\CompanyDealPricing`. Dashboard: `App\Http\Controllers\Api\V2\Business\InstitutionDashboardController` and `App\Repositories\V2\InstitutionDashboardRepository`.
 
 Company submit, catalog read, promoters, shareholders, and company deals are on this prefix. These routes do not write `seller_company_share_price`. A non-hot deal create upserts today's `company_share_price` for each affected company and dispatches `CalcuatePricingAutoJob` once. Hot deals stay on `company_deals` and are excluded from that history. Seller `POST /api/v2/seller/company/update-share-price` is not on this prefix: that write stores `seller_company_share_price.seller_id`, and an Institution partner id is never written into a seller id column. Deal list and create already live at `GET` and `POST` `.../company/deals` (the seller paths are `.../deals/list` and `.../deals/create`). `GET /api/v2/business/company/list` and `GET /api/v2/business/company/detail` stay the shared partner catalog. The Institution list and detail below are separate routes.
 
@@ -12,12 +12,13 @@ Every request sits under `ApiHeaderAuthMiddleware` and `auth:partner-api-guard`.
 
 - Header `headtoken` — app header token.
 - Header `Authorization: Bearer <token>` — Sanctum token for a `PartnerModel` (`partner-api-guard`).
-- `partner.type` must be `Institution` (`PartnerTypeEnum::institution`). Any other partner type is rejected with `status` `0` and message `Only Institution partners can submit a company`. The same gate is used for every route in this prefix.
+- `partner.type` must be `Institution` (`PartnerTypeEnum::institution`). Any other partner type is rejected with `status` `0`. Company routes use `Only Institution partners can submit a company`. The dashboard uses `Only Institution partners can view this dashboard.` Pre-IPO order routes use `Only Institution partners can manage these orders.` A caller who is not a partner gets `Unauthorized` on the dashboard.
 
 ## Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
+| GET | `/api/v2/business/institution/dashboard` | This Institution's home dashboard |
 | POST | `/api/v2/business/institution/company/check-duplicate` | Check CIN and/or legal name before submit |
 | POST | `/api/v2/business/institution/company` | Create a company that is approved and live for partners immediately |
 | GET | `/api/v2/business/institution/company/sectors` | Active sectors for the create dropdown |
@@ -32,6 +33,12 @@ Every request sits under `ApiHeaderAuthMiddleware` and `auth:partner-api-guard`.
 | GET | `/api/v2/business/institution/company/deals` | List this Institution's deals only |
 | POST | `/api/v2/business/institution/company/deals/update` | Update one of this Institution's deals |
 | POST | `/api/v2/business/institution/company/deals/delete` | Soft-delete one of this Institution's deals |
+| GET | `/api/v2/business/institution/pre-ipo/transaction` | Pre-IPO orders on this Institution's deals after the mandate is signed |
+| GET | `/api/v2/business/institution/pre-ipo/transaction/detail` | One of those orders |
+| POST | `/api/v2/business/institution/pre-ipo/transaction/approve` | Approve share confirmation and send the deal slip |
+| POST | `/api/v2/business/institution/pre-ipo/transaction/reject` | Cancel at share confirmation with a reason |
+| POST | `/api/v2/business/institution/pre-ipo/transaction/confirm-payment` | Confirm a payment receipt |
+| POST | `/api/v2/business/institution/pre-ipo/transaction/share-transfer-receipt` | Upload the share-transfer receipt |
 
 ---
 
@@ -431,3 +438,169 @@ JSON body. Soft-deletes (`is_deleted` = true) one deal owned by this Institution
 Success (`status` `1`): message `Deal deleted`. No `data`.
 
 Business company detail (`GET /api/v2/business/company/detail`) includes these deals with the other non-expired deals for that company. When `created_by_partner_id` is set, the deal has nested `partner` (`id`, `uuid`, `name`, `profile_photo`). Seller-created deals still nest `seller` and set `partner` to null. Hot-deal cards do not attach a creator.
+
+### GET `/api/v2/business/institution/dashboard`
+
+Auth: partner API token. `partner.type` must be `Institution`. Any other partner type gets `status` `0` and message `Only Institution partners can view this dashboard.` A caller who is not a `PartnerModel` gets `status` `0` and message `Unauthorized`.
+
+No body. No query parameters.
+
+This route does not write `seller_company_share_price`. `price_uploaded_today` and `price_not_uploaded_today` are not returned.
+
+`access` is this Institution's `is_primary_access`, `is_secondary_access`, and `is_preipo_access` on `PartnerModel` (booleans).
+
+Deals are this Institution's rows only (`company_deals.created_by_partner_id`, `is_deleted` = 0). `available` is status `available` and not expired (`expired_at` null or `expired_at` >= now). `expired` is `expired_at` in the past.
+
+`summary.companies.pending_approval` is this Institution's submissions (`company.submitted_by_partner_id`, `approval_status` `pending`, `is_deleted` 0). `total_companies` is the approved catalog (`is_deleted` 0 and `approval_status` `approved`), the same global count as the seller dashboard.
+
+Orders use `PreIpoOrderStepService::institutionQuery` for this Institution. That list is `partner_id` = this Institution, `order_step` set, `mandate_pending` excluded, and a cancel from `mandate_pending` stays hidden (no signed `BuyMandate` document with status `1`). Integer `status` is not used for these counts. New buys leave `status` at `0`. Rows with `order_step` null are outside this list. Another Institution's `partner_id` is excluded.
+
+Buckets on that order list:
+
+- `pending` = `share_confirmation_pending`
+- `processing` = `deal_slip_pending`, `payment_pending`, `payment_confirmation_pending`, `share_transfer_pending`, `share_transfer_confirmation_pending`
+- `completed` = `completed`
+- `cancelled` after the mandate was signed is left out of these three counts. It can still appear in `recent.transactions`.
+- `mandate_pending` is not on this dashboard.
+
+`charts.transaction_volume` is the last 6 months and last 6 quarters for completed orders only (`DateTimeHelper::getLast6Months` and `getLast6QuartersDates`): count and `SUM(investment_amount)`. Monthly rows are `month`, `start`, `end`, `count`, `amount`, and that array is reversed. Quarterly rows are `quater`, `start`, `end`, `count`, `amount`. Volume and the top-companies chart use `created_at` and `investment_amount`, grouped by `company_id`.
+
+`charts.transaction_status` is `pending`, `processing`, and `completed` with labels Pending, Processing, and Completed. `charts.deals_by_status` is `available` and `expired`. `charts.top_companies_by_completed_amount` is the top 5 completed orders by `SUM(investment_amount)`: `company_id`, `brand_name`, `logo`, `completed_count`, `completed_amount`.
+
+`recent.deals` and `recent.my_submissions` are the latest 5, same fields as the seller dashboard, scoped to this Institution. `recent.transactions` is the latest 5 in the order scope above. Each row has the seller fields (`id`, `status`, `investment_amount`, `created_at`, company `id` / `brand_name` / `logo`) plus `order_step` and `investor` (`id`, `name`).
+
+Success (`status` `1`): message `Dashboard`.
+
+```
+{
+  "status": 1,
+  "message": "Dashboard",
+  "data": {
+    "access": {
+      "is_primary_access": true, // boolean
+      "is_secondary_access": false, // boolean
+      "is_preipo_access": true // boolean
+    },
+    "summary": {
+      "transactions": { "pending": 0, "processing": 0, "completed": 0 },
+      "deals": { "available": 0, "expired": 0 },
+      "companies": { "pending_approval": 0, "total_companies": 0 }
+    },
+    "charts": {
+      "transaction_volume": {
+        "monthly": [{ "month": "October 2026", "start": "2026-10-01", "end": "2026-10-31", "count": 0, "amount": 0 }],
+        "quarterly": [{ "quater": "Q3-2026", "start": "2026-07-01", "end": "2026-09-30", "count": 0, "amount": 0 }]
+      },
+      "transaction_status": [
+        { "key": "pending", "label": "Pending", "count": 0 },
+        { "key": "processing", "label": "Processing", "count": 0 },
+        { "key": "completed", "label": "Completed", "count": 0 }
+      ],
+      "deals_by_status": [
+        { "key": "available", "count": 0 },
+        { "key": "expired", "count": 0 }
+      ],
+      "top_companies_by_completed_amount": [
+        { "company_id": 1, "brand_name": "Example", "logo": null, "completed_count": 1, "completed_amount": 250 }
+      ]
+    },
+    "recent": {
+      "transactions": [],
+      "deals": [],
+      "my_submissions": []
+    }
+  }
+}
+```
+
+## Pre-IPO order steps
+
+Source: `App\Http\Controllers\Api\V2\Business\InstitutionPreIpoOrderController`. Service: `App\Services\PreIpoOrderStepService`. Step list: [pre-ipo-order-steps.md](../workflows/pre-ipo-order-steps.md).
+
+These routes are Institution-only (`partner.type` = `Institution`). Any other partner type gets `status` `0` and message `Only Institution partners can manage these orders.`
+
+List and detail include an order only when `pre_ipo_transaction.partner_id` is this Institution, `order_step` is set, `order_step` is not `mandate_pending`, and the order was not cancelled before the buy mandate was signed. A reject from `share_confirmation_pending` stays on the list because the signed `BuyMandate` document exists. These lists are new orders only, so a row never includes `status_list` or the old status `0`–`5` timeline.
+
+`current_step` and `next_step` are the Institution labels from `PreIpoOrderStepHelper::labels`. `action` is an array of action names, or null. `sign_link` is null here: the Institution does not sign. The other keys match the buying-partner order-step object in [partner.md](partner.md): `id`, `transaction_invoice_no`, `order_step`, `current_step`, `next_step`, `action`, `sign_link`, `investor` (`id`, `name`), `company` (`id`, `brand_name`, `logo`), `deal_id`, `shares`, `base_price`, `distributer_price`, `share_price`, `investment_amount`, `payable_amount`, `cancellation_reason`, `payment_details`, `payment_receipt`, `share_transfer_receipt`, `created_at`. `payment_details.account` is this Institution's self-investor CML bank, not `seller_master`. Approve, reject, confirm-payment, and share-transfer-receipt return that same object.
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/api/v2/business/institution/pre-ipo/transaction` | Orders this Institution can see |
+| GET | `/api/v2/business/institution/pre-ipo/transaction/detail` | One visible order |
+| POST | `/api/v2/business/institution/pre-ipo/transaction/approve` | `share_confirmation_pending` → send deal slip → `deal_slip_pending` |
+| POST | `/api/v2/business/institution/pre-ipo/transaction/reject` | `share_confirmation_pending` → `cancelled` |
+| POST | `/api/v2/business/institution/pre-ipo/transaction/confirm-payment` | `payment_confirmation_pending` → `share_transfer_pending` |
+| POST | `/api/v2/business/institution/pre-ipo/transaction/share-transfer-receipt` | `share_transfer_pending` → `share_transfer_confirmation_pending` |
+
+### GET `/api/v2/business/institution/pre-ipo/transaction`
+
+Auth: partner API token; `partner.type` must be `Institution`.
+
+No body. Success (`status` `1`): message `Transaction list`. `data` is the visible orders in the order-step shape above.
+
+### GET `/api/v2/business/institution/pre-ipo/transaction/detail`
+
+Query: `transaction_id` (integer, required). The order must be visible to this Institution.
+
+Success (`status` `1`): message `Transaction detail`. `data` is one order in that same shape. `payment_details` is null before `payment_pending`. Receipt keys are null until a file is stored.
+
+Failure (`status` `0`): `Transaction not found`, or the validation message.
+
+### POST `/api/v2/business/institution/pre-ipo/transaction/approve`
+
+```
+{
+  "transaction_id": 1 // integer required
+}
+```
+
+Only `share_confirmation_pending`. Sends the existing Digio deal slip. Seller and bank lines come from `seller_investor_id`, not `seller_master`. CIN and bank branch are `NA`. Does not wait for `preipo_kyc_status`. Integer `status` stays `0`.
+
+Success (`status` `1`): message `Deal slip sent.` `order_step` is `deal_slip_pending`.
+
+Failure (`status` `0`): `The deal slip could not be sent.` when Digio fails (step unchanged), `This action is not available for the current order step.`, or `Transaction not found`.
+
+### POST `/api/v2/business/institution/pre-ipo/transaction/reject`
+
+```
+{
+  "transaction_id": 1, // integer required
+  "reason": "Shares are not available" // string required, max 1000
+}
+```
+
+Only `share_confirmation_pending`. Sets `order_step` `cancelled` and `cancellation_reason`. Integer `status` stays `0`.
+
+Success (`status` `1`): message `Transaction cancelled.`
+
+Failure (`status` `0`): `This action is not available for the current order step.`, `Transaction not found`, or the validation message.
+
+### POST `/api/v2/business/institution/pre-ipo/transaction/confirm-payment`
+
+```
+{
+  "transaction_id": 1 // integer required
+}
+```
+
+Only `payment_confirmation_pending`. Sets `order_step` `share_transfer_pending`. The payment row status becomes `approved`.
+
+Success (`status` `1`): message `Payment confirmed.`
+
+Failure (`status` `0`): `This action is not available for the current order step.`, or `Transaction not found`.
+
+### POST `/api/v2/business/institution/pre-ipo/transaction/share-transfer-receipt`
+
+Multipart. Only `share_transfer_pending`. Stores document type `Pre-IPO Share Transfer Receipt` (not secondary `Share Receipt`), then sets `order_step` `share_transfer_confirmation_pending`.
+
+```
+{
+  "transaction_id": 1, // integer required
+  "file": null // file required — png, jpg, jpeg, or pdf; max file_document_max_size MB
+}
+```
+
+Success (`status` `1`): message `Share-transfer receipt uploaded.`
+
+Failure (`status` `0`): `This action is not available for the current order step.`, `Share-transfer receipt upload failed.`, `Transaction not found`, or the validation message.
+

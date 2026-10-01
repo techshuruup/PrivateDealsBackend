@@ -15,7 +15,7 @@ Collect and verify investor identity (PAN/Aadhaar), demat (CML PDF), and bank ac
 | V2 `/forge/read/demat-pdf` | PDF parse |
 | V2 `/api/v2/business/investor/kyc/cml/read`, `/api/v2/business/investor/kyc/cml/save` | Partner KYC for an owned investor (`investor_id`). Same parse and save as investor CML. See [api/v2.md](../api/v2.md) and [api/partner.md](../api/partner.md). |
 | Global forge (auth investor) | `/api/forge/read/demat-pdf`, `aadhar-pan` via `UploadAndParseController` |
-| Admin | manual KYC / AIF onboard routes. Admin create for Wealth Manager, Distributor, Retailer, and Institution reuses `DematKycService::saveDematKyc` on the partner’s self investor. Relation Manager create does not. |
+| Admin | manual KYC / AIF onboard routes. Admin create for Wealth Manager, Distributor, Retailer, and Institution reuses `DematKycService::saveDematKyc` on the partner’s self investor. After a successful save, both `partner.name` and the self investor’s `name` are the KYC full name. Relation Manager create does not. |
 
 ## Services
 

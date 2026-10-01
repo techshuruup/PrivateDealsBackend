@@ -3103,7 +3103,7 @@ class CommonController extends Controller
         if (!$transaction) {
             return UtillsHelper::json(0, ['message' => 'Transaction not found']);
         }
-        if ($transaction->status != 0) {
+        if ($transaction->usesOrderStep() || $transaction->status != 0) {
             return UtillsHelper::json(0, ['message' => 'Transaction cannot be cancelled']);
         }
         $transaction->status = 1;
@@ -3138,7 +3138,7 @@ class CommonController extends Controller
             return UtillsHelper::json(0, ['message' => 'Transaction not found']);
         }
 
-        if ($transaction->status != 3) {
+        if ($transaction->usesOrderStep() || $transaction->status != 3) {
             return UtillsHelper::json(0, [
                 'message' => 'Payment receipt can only be uploaded after deal slip is signed.'
             ]);

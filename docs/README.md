@@ -66,6 +66,7 @@ Pointer stub: [START-HERE.md](START-HERE.md) → redirects to new-system.
 | Document | Purpose |
 |----------|---------|
 | [features/pre-ipo.md](features/pre-ipo.md) | Unlisted / Pre-IPO trading |
+| [features/pre-ipo-order-notifications.md](features/pre-ipo-order-notifications.md) | Planned Pre-IPO order notification matrix (not live yet) |
 | [features/primary-transactions.md](features/primary-transactions.md) | Startup primary fundraising |
 | [features/secondary-market.md](features/secondary-market.md) | Secondary transfers / ROFR |
 | [features/kyc-demat.md](features/kyc-demat.md) | KYC, PAN/Aadhaar, demat, bank |
@@ -86,8 +87,9 @@ Pointer stub: [START-HERE.md](START-HERE.md) → redirects to new-system.
 | [api/v1.md](api/v1.md) | Investor / business / startup v1 |
 | [api/v2.md](api/v2.md) | Investor / business v2 |
 | [api/app-handoff.md](api/app-handoff.md) | App developer start here — 30 Sep 2026 partner and Institution APIs |
-| [api/institution.md](api/institution.md) | Institution partner company submit, catalog, promoters, shareholders, and deals |
-| [api/partner.md](api/partner.md) | Partner investor list, investor create, CML KYC, and self investor id |
+| [api/order-flow-handoff.md](api/order-flow-handoff.md) | App developer handoff for the new Pre-IPO order flow |
+| [api/institution.md](api/institution.md) | Institution partner dashboard, company submit, catalog, promoters, shareholders, deals, and pre-IPO orders |
+| [api/partner.md](api/partner.md) | Partner investor list, investor create, CML KYC, Pre-IPO buy, and self investor id |
 | [api/webhooks-third-party.md](api/webhooks-third-party.md) | Webhooks + sandbox |
 
 ### Workflows
@@ -97,6 +99,7 @@ Pointer stub: [START-HERE.md](START-HERE.md) → redirects to new-system.
 | [new-system/workflows/flows/](new-system/workflows/flows/) | New-system topic detail pages |
 | [workflows/investor-onboarding.md](workflows/investor-onboarding.md) | Register → MPIN → KYC |
 | [workflows/pre-ipo-buy-sell.md](workflows/pre-ipo-buy-sell.md) | Buy/sell/cancel Pre-IPO |
+| [workflows/pre-ipo-order-steps.md](workflows/pre-ipo-order-steps.md) | Partner order steps on `order_step` (old orders with null `order_step` still use status 0–5) |
 | [workflows/primary-investment.md](workflows/primary-investment.md) | Commit → docs → payment |
 | [workflows/secondary-trade.md](workflows/secondary-trade.md) | Sell request → allot → transfer |
 

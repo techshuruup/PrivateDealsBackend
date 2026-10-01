@@ -490,7 +490,7 @@ class CommonController extends Controller
         if (!$transaction) {
             return UtillsHelper::json(0, ['message' => 'Transaction not found']);
         }
-        if ($transaction->status != 0) {
+        if ($transaction->usesOrderStep() || $transaction->status != 0) {
             return UtillsHelper::json(0, ['message' => 'Transaction cannot be cancelled']);
         }
         $transaction->status = 1;

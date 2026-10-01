@@ -40,6 +40,9 @@ class BuyNotificationJob implements ShouldQueue
     {
         $transaction = PreIpoModel::where('id', $this->transaction_id)->first();
         if ($transaction && $transaction->is_valid == 1) {
+            if ($transaction->usesOrderStep()) {
+                return;
+            }
             if ($transaction->investor && $transaction->investor->is_demo == 0 && $transaction->company) {
 
                 // Build dynamic note for {{6}} in the WhatsApp template

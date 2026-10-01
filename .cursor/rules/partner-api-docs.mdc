@@ -1,0 +1,16 @@
+---
+description: New partner APIs are documented in docs/api/partner.md in the same task
+alwaysApply: true
+---
+
+# Partner API documentation
+
+When you add or change a route under `/api/v2/business/` that any logged-in partner can call, update `docs/api/partner.md` in the same task.
+
+1. Add one row to the endpoint table.
+2. Add a field-level section in the same style as the other endpoints on that page: auth, request, rules, saved fields, success and failure.
+3. Add a short line in `docs/api/v2.md` that points at `docs/api/partner.md`. Keep the field-level copy on `partner.md`.
+4. Institution-only routes (`/api/v2/business/institution/...`) go in `docs/api/institution.md`, not `partner.md`.
+5. If the call changes an order step or a saved column, also update the matching file under `docs/workflows/` or `docs/features/`.
+
+Example: `POST /api/v2/business/pre-ipo/buy` is documented in `docs/api/partner.md`.

@@ -15,6 +15,7 @@
                         <h2>List</h2>
                     </div>
                     <div class="card-toolbar">
+                        <a href="{{ route('admin.preipotransaction.orderSteps') }}" class="btn btn-sm btn-light-primary me-2">Partner order steps</a>
                         {{-- <a href="{{ route('admin.startup.mis.create') }}" class="btn btn-sm btn-primary">
                             Create
                         </a> --}}

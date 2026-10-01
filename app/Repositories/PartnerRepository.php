@@ -757,7 +757,7 @@ class PartnerRepository
             $rules['dp_id'] = 'required';
             $rules['client_id'] = 'required';
             $rules['pan_no'] = 'required';
-            $rules['kyc_name'] = 'required';
+            $rules['kyc_name'] = 'required|string|max:255';
             $rules['account_number'] = 'required';
             $rules['ifsc_code'] = 'required';
             $rules['bank_name'] = 'nullable';
@@ -988,6 +988,13 @@ class PartnerRepository
             }
             throw new RuntimeException($message);
         }
+
+        $kycName = $request->input('kyc_name');
+        $partner->name = $kycName;
+        $partner->save();
+
+        $investor->name = $kycName;
+        $investor->save();
     }
 
     public function createSelfInvestor(PartnerModel $partner): void

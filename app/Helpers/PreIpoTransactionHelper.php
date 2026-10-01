@@ -20,6 +20,9 @@ class PreIpoTransactionHelper
 
     static function getStatusListForApplicationV2(PreIpoModel $transaction): array
     {
+        if ($transaction->usesOrderStep()) {
+            return [];
+        }
         $list = [];
 
         $list[] = [
@@ -195,6 +198,9 @@ class PreIpoTransactionHelper
 
     static function getStatusListForApplication(PreIpoModel $transaction): array
     {
+        if ($transaction->usesOrderStep()) {
+            return [];
+        }
         $list = [];
 
         $list[] = [
@@ -263,6 +269,12 @@ class PreIpoTransactionHelper
             foreach ($document->meta->preipo_transactions as $key => $value) {
                 $transaction = PreIpoModel::find($value);
                 if ($transaction) {
+                    if ($transaction->usesOrderStep()) {
+                        if ($document->type == DocumentTypeEnum::preipodealslip->value) {
+                            app(\App\Services\PreIpoOrderStepService::class)->onDealSlipSigned($transaction);
+                        }
+                        continue;
+                    }
                     if ($document->type == DocumentTypeEnum::preipodealslip->value) {
                         if ($transaction->status < 3) {
 
@@ -347,8 +359,11 @@ class PreIpoTransactionHelper
 
     static function sendDealSlip($transaction): void
     {
+        if ($transaction->usesOrderStep()) {
+            return;
+        }
         // Only send deal slip if KYC is done
-        if ($transaction->seller && $transaction->investor) {
+        if (($transaction->seller || $transaction->seller_investor_id) && $transaction->investor) {
             // Check for KYC status (1 = done)
             if (!($transaction->investor->preipo_kyc_status ?? false)) {
                 Log::info('Deal slip not sent: Investor KYC not completed for transaction ID ' . $transaction->id);

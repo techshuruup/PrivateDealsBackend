@@ -32,6 +32,7 @@ class InvestorMorningDeadlineReminderCommand extends Command
 
         // Transactions in investor action window, timer not expired yet, expiring today after market open
         $transactions = PreIpoModel::whereIn('status', [2, 3])
+            ->whereNull('order_step')
             ->whereNotNull('transaction_cancel_timer')
             ->whereDate('transaction_cancel_timer', $now->toDateString())
             ->where('transaction_cancel_timer', '>', $marketOpen)

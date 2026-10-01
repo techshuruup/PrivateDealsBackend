@@ -161,6 +161,16 @@ class WebhookController extends Controller
                                     WebhookHelper::aifOnboard($document, $file);
                                 } else if ($document->type == DocumentTypeEnum::preipodealslip->value) {
                                     WebhookHelper::dealslipWebhook($document, $file);
+                                } else if ($document->type == DocumentTypeEnum::buymandate->value) {
+                                    $name = CommonHelper::generateFileName() . '.pdf';
+                                    $path = 'preipo/' . $name;
+                                    if (Storage::disk('s3')->put($path, $file, 'public')) {
+                                        $document->path = $path;
+                                        $document->signed_path = $path;
+                                        $document->status = 1;
+                                        $document->save();
+                                        app(\App\Services\PreIpoOrderStepService::class)->onMandateDocumentSigned($document);
+                                    }
                                 } else {
                                     $path = 'primary_transaction/' . $name;
                                     if (Storage::disk('s3')->put($path, $file, 'public')) {

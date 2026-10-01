@@ -35,6 +35,7 @@ class InvestorDeadlineReminderCommand extends Command
 
         // Transactions in investor action window, timer not expired yet, expiring within 4h
         $transactions = PreIpoModel::whereIn('status', [2, 3])
+            ->whereNull('order_step')
             ->whereNotNull('transaction_cancel_timer')
             ->where('transaction_cancel_timer', '>', $warnTo)
             ->where('transaction_cancel_timer', '<=', $warnFrom)

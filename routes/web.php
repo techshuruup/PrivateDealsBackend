@@ -383,6 +383,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::delete('delete/{id}', [AdminPreIpoTransactionController::class, 'deletePreIpoTransaction'])->name('delete');
             Route::post('extend-timer/{transaction_id}', [AdminPreIpoTransactionController::class, 'extendTimer'])->name('extendTimer');
             Route::post('retrieve-transaction/{transaction_id}', [AdminPreIpoTransactionController::class, 'retrieveTransaction'])->name('retrieve');
+            Route::get('order-steps', [AdminPreIpoTransactionController::class, 'orderSteps'])->name('orderSteps');
+            Route::post('order-steps/{transaction_id}/approve', [AdminPreIpoTransactionController::class, 'orderStepApprove'])->name('orderStepApprove');
+            Route::post('order-steps/{transaction_id}/reject', [AdminPreIpoTransactionController::class, 'orderStepReject'])->name('orderStepReject');
+            Route::post('order-steps/{transaction_id}/confirm-payment', [AdminPreIpoTransactionController::class, 'orderStepConfirmPayment'])->name('orderStepConfirmPayment');
+            Route::post('order-steps/{transaction_id}/share-transfer-receipt', [AdminPreIpoTransactionController::class, 'orderStepShareTransferReceipt'])->name('orderStepShareTransfer');
 
 
 

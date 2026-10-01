@@ -96,13 +96,13 @@ class PreIpoTransactionDataTable extends DataTable
             //     return $query->where('status', $this->operator, $this->status);
             // })
             ->when(request()->routeIs('admin.preipotransaction.pending'), function ($query) {
-                return $query->where('status', '>', '1')->where('status', '!=', '5');
+                return $query->where('status', '>', '1')->where('status', '!=', '5')->whereNull('order_step');
             })
             ->when(request()->routeIs('admin.preipotransaction.completed'), function ($query) {
-                return $query->where('status', '5');
+                return $query->where('status', '5')->whereNull('order_step');
             })
             ->when(request()->routeIs('admin.preipotransaction.rejected'), function ($query) {
-                return $query->where('status', '1');
+                return $query->where('status', '1')->whereNull('order_step');
             })
             ->whereHas('investor', function ($q) {
                 $q->where('is_deleted', 0);

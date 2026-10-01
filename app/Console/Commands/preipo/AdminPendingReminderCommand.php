@@ -31,6 +31,7 @@ class AdminPendingReminderCommand extends Command
     public function handle(): void
     {
         $pendingTransactions = PreIpoModel::where('status', 0)
+            ->whereNull('order_step')
             ->where('is_valid', 1)
             ->whereHas('investor', function ($query) {
                 $query->where('is_demo', 0)->where('is_deleted', 0);

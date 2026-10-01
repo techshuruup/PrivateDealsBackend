@@ -35,6 +35,7 @@ class AutoCancelPreIpoTransactions extends Command
 
         // Only cancel during the investor action window (deal slip sent / signed)
         $expiredTransactions = PreIpoModel::whereIn('status', [2, 3])
+            ->whereNull('order_step')
             ->whereNotNull('transaction_cancel_timer')
             ->where('transaction_cancel_timer', '<=', $now)
             ->with(['investor', 'company'])

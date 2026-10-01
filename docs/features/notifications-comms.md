@@ -35,3 +35,4 @@ Deliver WhatsApp, push (FCM), email/SMS, and in-app notifications for KYC, trans
 
 - [integrations/overview.md](../integrations/overview.md)
 - [deployment/overview.md](../deployment/overview.md)
+- [pre-ipo-order-notifications.md](pre-ipo-order-notifications.md) is the Pre-IPO partner order message matrix for rows with `order_step` set. Where a WhatsApp template is not already in the product, the code sends in-app only and logs that the template is not configured.

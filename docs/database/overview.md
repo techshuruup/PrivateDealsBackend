@@ -19,6 +19,9 @@ erDiagram
   partner ||--o{ investor : manages
   partner ||--o{ partner : "parent creates child"
   company ||--o{ pre_ipo_transaction : underlying
+  company_deals ||--o{ pre_ipo_transaction : "partner order deal_id"
+  partner ||--o{ pre_ipo_transaction : "institution partner_id"
+  investor ||--o{ pre_ipo_transaction : "seller_investor_id"
   startup ||--o{ primary_transaction : raises
   documents ||--o{ pre_ipo_transaction : attaches
 ```
@@ -47,7 +50,7 @@ Partner network detail (types including Institution, Seller target role, hierarc
 ### Transactions
 | Table | Model |
 |-------|-------|
-| `pre_ipo_transaction` | `PreIpoModel` |
+| `pre_ipo_transaction` | `PreIpoModel`. Partner orders add nullable indexed `deal_id`, `partner_id` (Institution), `seller_investor_id`, nullable `base_price`, and nullable indexed `order_step`. Null `order_step` is the old integer `status` `0`–`5` machine. New V2 partner buys set `order_step` to `mandate_pending` and leave `status` at `0`. `seller_id` stays null for these orders. |
 | `primary_transaction` | `PrimaryTransactionModel` |
 | `secondary_transaction` | `SecondaryTransactionModel` |
 | secondary sell/payments/escrow/transfer | matching models |

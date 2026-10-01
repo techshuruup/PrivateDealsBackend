@@ -12,6 +12,7 @@ use App\Helpers\DateTimeHelper;
 use App\Helpers\DigioHelper;
 use App\Helpers\DocumentHelper;
 use App\Helpers\FileUpDownHelper;
+use App\Helpers\PreIpoOrderStepHelper;
 use App\Helpers\PreIpoTransactionHelper;
 use App\Helpers\UtillsHelper;
 use App\Helpers\WebhookHelper;
@@ -26,6 +27,7 @@ use App\Models\PortfolioPreIpoModel;
 use App\Models\PreIpoModel;
 use App\Models\ReportErrorLogModel;
 use App\Models\SellerMasterModel;
+use App\Services\PreIpoOrderStepService;
 use App\Services\PreIpoTimerService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Exception;
@@ -46,7 +48,6 @@ class PreIpoTransactionController extends Controller
     {
         $request = request();
         $validation = Validator::make($request->all(), [
-            'seller'   => 'required_if:status,approve',
             'status'   => 'required|in:approve,reject',
             'transaction' => 'required',
             'notes' => 'nullable|string',
@@ -60,6 +61,7 @@ class PreIpoTransactionController extends Controller
         // $transaction = PreIpoModel::where('id', $request->transaction)->where('created_by', NULL)->first();
         $transaction = PreIpoModel::where('id', $request->transaction)
             ->where('status', 0)
+            ->whereNull('order_step')
             ->first();
         if ($request->filled('temptoken')) {
             DynamicUrlModel::where('token', $request->temptoken)
@@ -69,13 +71,21 @@ class PreIpoTransactionController extends Controller
             return UtillsHelper::json(0, ['message' => 'Transaction Already Assigned', 'remove_transaction' => true]);
         } else {
 
-
-
+            if ($request->status == 'approve' && !$transaction->partner_id) {
+                $sellerValidation = Validator::make($request->all(), [
+                    'seller' => 'required',
+                ]);
+                if ($sellerValidation->fails()) {
+                    return UtillsHelper::json(0, ['message' => 'The seller field is required when status is approve.']);
+                }
+            }
 
             $transaction->status = 1;
             $transaction->cancellation_reason = $request->notes;
             if ($request->status == 'approve') {
-                $transaction->seller_id = $request->seller;
+                if (!$transaction->partner_id) {
+                    $transaction->seller_id = $request->seller;
+                }
                 $transaction->status = 2;
             }
 
@@ -233,6 +243,7 @@ class PreIpoTransactionController extends Controller
         $data['sellers'] = SellerMasterModel::where('is_deleted', '0')->get();
 
         $data['transactions'] = PreIpoModel::where('created_by', NULL)->where('status', '0')
+            ->whereNull('order_step')
             ->whereHas('investor', function ($query) {
                 $query->where('is_demo', 0)->where('is_deleted', 0);
             })
@@ -272,6 +283,9 @@ class PreIpoTransactionController extends Controller
     function status($transaction_id): RedirectResponse
     {
         $transaction = PreIpoModel::where('id', $transaction_id)->first();
+        if ($transaction && $transaction->usesOrderStep()) {
+            return redirect()->back()->with('error', 'This order uses the partner order step flow.');
+        }
         if ($transaction) {
             if ($transaction->status == 3) {
                 $transaction->status = 4;
@@ -465,6 +479,10 @@ class PreIpoTransactionController extends Controller
                 return UtillsHelper::json(0, ['message' => 'Transaction not found']);
             }
 
+            if ($transaction->usesOrderStep()) {
+                return UtillsHelper::json(0, ['message' => 'This order uses the partner order step flow.']);
+            }
+
             // Only allow extending timer for status 0, 2, and 3
             if (!in_array($transaction->status, [0, 2, 3])) {
                 return UtillsHelper::json(0, ['message' => 'Cannot extend timer for this transaction status']);
@@ -514,6 +532,10 @@ class PreIpoTransactionController extends Controller
 
             if (!$transaction) {
                 return UtillsHelper::json(0, ['message' => 'Transaction not found or is not cancelled']);
+            }
+
+            if ($transaction->usesOrderStep()) {
+                return UtillsHelper::json(0, ['message' => 'This order uses the partner order step flow.']);
             }
 
             if (!$transaction->investor || !$transaction->company) {
@@ -587,5 +609,87 @@ class PreIpoTransactionController extends Controller
             Log::error('PreIpoTransactionController@retrieveTransaction failed: ' . $e->getMessage());
             return UtillsHelper::json(0, ['message' => 'An error occurred while retrieving transaction']);
         }
+    }
+
+    public function orderSteps(): View
+    {
+        setPageTitle('Pre-IPO partner order steps');
+        $transactions = PreIpoModel::query()
+            ->whereNotNull('order_step')
+            ->with(['investor', 'company'])
+            ->orderByDesc('id')
+            ->limit(200)
+            ->get()
+            ->map(function (PreIpoModel $transaction) {
+                $labels = PreIpoOrderStepHelper::labels($transaction, PreIpoOrderStepHelper::AUDIENCE_ADMIN);
+
+                return [
+                    'model' => $transaction,
+                    'current' => $labels['current'],
+                    'next' => $labels['next'],
+                    'action' => $labels['action'] ?? [],
+                ];
+            });
+
+        return view('admin.pages.pre-ipo-transactions.order-steps', [
+            'transactions' => $transactions,
+        ]);
+    }
+
+    public function orderStepApprove($transaction_id): RedirectResponse
+    {
+        return $this->orderStepRedirect($transaction_id, function (PreIpoModel $transaction) {
+            return app(PreIpoOrderStepService::class)->approve($transaction);
+        });
+    }
+
+    public function orderStepReject(Request $request, $transaction_id): RedirectResponse
+    {
+        $validation = Validator::make($request->all(), [
+            'reason' => 'required|string|max:1000',
+        ]);
+        if ($validation->fails()) {
+            return redirect()->back()->with('error', $validation->errors()->first());
+        }
+
+        return $this->orderStepRedirect($transaction_id, function (PreIpoModel $transaction) use ($request) {
+            return app(PreIpoOrderStepService::class)->reject($transaction, (string) $request->reason);
+        });
+    }
+
+    public function orderStepConfirmPayment($transaction_id): RedirectResponse
+    {
+        return $this->orderStepRedirect($transaction_id, function (PreIpoModel $transaction) {
+            return app(PreIpoOrderStepService::class)->confirmPayment($transaction);
+        });
+    }
+
+    public function orderStepShareTransferReceipt(Request $request, $transaction_id): RedirectResponse
+    {
+        $validation = Validator::make($request->all(), [
+            'file' => 'required|file|mimes:png,jpg,jpeg,pdf|max:'.UtillsHelper::maxFileDocumentSizeInKB(),
+        ]);
+        if ($validation->fails()) {
+            return redirect()->back()->with('error', $validation->errors()->first());
+        }
+
+        return $this->orderStepRedirect($transaction_id, function (PreIpoModel $transaction) use ($request) {
+            return app(PreIpoOrderStepService::class)->uploadShareTransferReceipt($transaction, $request->file('file'));
+        });
+    }
+
+    private function orderStepRedirect($transaction_id, callable $action): RedirectResponse
+    {
+        $transaction = PreIpoModel::query()->whereKey($transaction_id)->whereNotNull('order_step')->first();
+        if (!$transaction) {
+            return redirect()->back()->with('error', 'Transaction not found');
+        }
+
+        $result = $action($transaction);
+        if (!($result['ok'] ?? false)) {
+            return redirect()->back()->with('error', $result['message'] ?? 'This action is not available for the current order step.');
+        }
+
+        return redirect()->back()->with('success', $result['message']);
     }
 }
