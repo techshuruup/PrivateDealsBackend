@@ -161,7 +161,7 @@ Example at fee 1%: the app sends `100`, the response has `base_price` `100` and 
 |---|---|---|
 | POST | `/api/v2/business/institution/company/deals` | One deal. Field `share_price` is the base amount |
 | POST | `/api/v2/business/institution/company/deals/bulk` | Many sell and/or buy rows |
-| GET | `/api/v2/business/institution/company/deals` | This Institution’s deals only |
+| GET | `/api/v2/business/institution/company/deals` | This Institution’s hot deals only |
 | POST | `/api/v2/business/institution/company/deals/update` | One owned deal, by `uuid` |
 | POST | `/api/v2/business/institution/company/deals/delete` | Soft-delete one owned deal, by `uuid` |
 

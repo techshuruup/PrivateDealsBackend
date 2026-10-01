@@ -653,6 +653,7 @@ class SellerCompanyRepository
         $sellerId = (int) $request->user()->id;
         $type = $request->input('type', 'All');
         $query = CompanyDealModel::notDeleted()
+            ->hot()
             ->where('created_by_seller_id', $sellerId)
             ->whereHas('company', function ($q) use ($type) {
                 $q->where('is_deleted', '0')
@@ -834,6 +835,7 @@ class SellerCompanyRepository
 
         $type = $request->input('type', 'All');
         $query = CompanyDealModel::notDeleted()
+            ->hot()
             ->where('created_by_partner_id', $partnerId)
             ->whereHas('company', function ($q) use ($type) {
                 $q->where('is_deleted', '0')

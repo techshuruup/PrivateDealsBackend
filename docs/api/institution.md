@@ -30,7 +30,7 @@ Every request sits under `ApiHeaderAuthMiddleware` and `auth:partner-api-guard`.
 | POST | `/api/v2/business/institution/company/shareholders` | Replace shareholders on a company this Institution submitted |
 | POST | `/api/v2/business/institution/company/deals` | Create a deal on an approved unlisted or secondary company |
 | POST | `/api/v2/business/institution/company/deals/bulk` | Insert sell and/or buy deals from price rows |
-| GET | `/api/v2/business/institution/company/deals` | List this Institution's deals only |
+| GET | `/api/v2/business/institution/company/deals` | List this Institution's hot deals only |
 | POST | `/api/v2/business/institution/company/deals/update` | Update one of this Institution's deals |
 | POST | `/api/v2/business/institution/company/deals/delete` | Soft-delete one of this Institution's deals |
 | GET | `/api/v2/business/institution/pre-ipo/transaction` | Pre-IPO orders on this Institution's deals after the mandate is signed |
@@ -381,7 +381,7 @@ Success (`status` `1`): message `Deals created`. `data` is an array of the same 
 
 Auth: partner API token; `partner.type` must be `Institution`.
 
-Returns only deals where `created_by_partner_id` is this partner and the company is still an approved, non-deleted `unlisted` or `secondary` company. Seller-created deals are not included.
+Returns only hot deals (`is_hot_deal` = true) where `created_by_partner_id` is this partner and the company is still an approved, non-deleted `unlisted` or `secondary` company. Non-hot deals and seller-created deals are not included.
 
 Query parameters (all optional):
 
