@@ -169,6 +169,7 @@ class SellerDashboardRepository
             ->values();
 
         $recentDeals = (clone $dealBase)
+            ->hot()
             ->with(['company:id,brand_name,slug,logo,type'])
             ->orderByDesc('id')
             ->limit(5)

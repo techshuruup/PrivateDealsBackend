@@ -85,6 +85,26 @@ class InstitutionDashboardRepository
             ->where('approval_status', CompanyApprovalStatusEnum::approved->value)
             ->count();
 
+        // Not seller_company_share_price. An Institution has no share-price upload.
+        // A price upload is a non-deleted normal deal (is_hot_deal = false) this
+        // Institution created today on an approved company. Hot deals do not count.
+        // price_not_uploaded_today is the approved catalog minus that distinct count.
+        $priceUploadedToday = (int) CompanyDealModel::query()
+            ->where('created_by_partner_id', $partnerId)
+            ->where('is_deleted', 0)
+            ->where('is_hot_deal', false)
+            ->whereDate('created_at', today())
+            ->whereIn('company_id', function ($q) {
+                $q->select('id')
+                    ->from('company')
+                    ->where('is_deleted', 0)
+                    ->where('approval_status', CompanyApprovalStatusEnum::approved->value);
+            })
+            ->selectRaw('COUNT(DISTINCT company_id) as cnt')
+            ->value('cnt');
+
+        $priceNotUploadedToday = max(0, $totalCompanies - $priceUploadedToday);
+
         $completedTx = (clone $txBase)->where('order_step', PreIpoOrderStepEnum::completed->value);
 
         $monthly = [];
@@ -173,6 +193,7 @@ class InstitutionDashboardRepository
             ->values();
 
         $recentDeals = (clone $dealBase)
+            ->hot()
             ->with(['company:id,brand_name,slug,logo,type'])
             ->orderByDesc('id')
             ->limit(5)
@@ -249,6 +270,8 @@ class InstitutionDashboardRepository
                     'companies' => [
                         'pending_approval' => $pendingApproval,
                         'total_companies' => $totalCompanies,
+                        'price_uploaded_today' => $priceUploadedToday,
+                        'price_not_uploaded_today' => $priceNotUploadedToday,
                     ],
                 ],
                 'charts' => [

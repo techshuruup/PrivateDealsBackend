@@ -55,10 +55,32 @@ class InstitutionDashboardTest extends TestCase
 
         $available = $this->makeDeal($company, $institution, [
             'expired_at' => null,
+            'is_hot_deal' => true,
         ]);
         $expired = $this->makeDeal($company, $institution, [
             'expired_at' => now()->subDay(),
+            'is_hot_deal' => true,
         ]);
+        $normalDeal = $this->makeDeal($company, $institution, [
+            'expired_at' => null,
+            'is_hot_deal' => false,
+        ]);
+        $hotOnlyCompany = $this->createApprovedCompany($institution);
+        $hotOnlyCompany->submitted_by_partner_id = null;
+        $hotOnlyCompany->save();
+        $hotOnlyDeal = $this->makeDeal($hotOnlyCompany, $institution, [
+            'expired_at' => null,
+            'is_hot_deal' => true,
+        ]);
+        $yesterdayCompany = $this->createApprovedCompany($institution);
+        $yesterdayCompany->submitted_by_partner_id = null;
+        $yesterdayCompany->save();
+        $yesterdayDeal = $this->makeDeal($yesterdayCompany, $institution, [
+            'expired_at' => null,
+            'is_hot_deal' => false,
+        ]);
+        $yesterdayDeal->created_at = now()->subDay();
+        $yesterdayDeal->save();
         $otherDeal = $this->makeDeal($otherCompany, $other, [
             'expired_at' => null,
         ]);
@@ -102,12 +124,12 @@ class InstitutionDashboardTest extends TestCase
         $this->assertSame(1, $response->json('data.summary.transactions.pending'));
         $this->assertSame(1, $response->json('data.summary.transactions.processing'));
         $this->assertSame(1, $response->json('data.summary.transactions.completed'));
-        $this->assertSame(1, $response->json('data.summary.deals.available'));
+        $this->assertSame(4, $response->json('data.summary.deals.available'));
         $this->assertSame(1, $response->json('data.summary.deals.expired'));
         $this->assertSame(1, $response->json('data.summary.companies.pending_approval'));
         $this->assertSame($expectedCompanies, $response->json('data.summary.companies.total_companies'));
-        $this->assertArrayNotHasKey('price_uploaded_today', $response->json('data.summary.companies'));
-        $this->assertArrayNotHasKey('price_not_uploaded_today', $response->json('data.summary.companies'));
+        $this->assertSame(1, $response->json('data.summary.companies.price_uploaded_today'));
+        $this->assertSame($expectedCompanies - 1, $response->json('data.summary.companies.price_not_uploaded_today'));
 
         $this->assertSame([
             ['key' => 'pending', 'label' => 'Pending', 'count' => 1],
@@ -115,7 +137,7 @@ class InstitutionDashboardTest extends TestCase
             ['key' => 'completed', 'label' => 'Completed', 'count' => 1],
         ], $response->json('data.charts.transaction_status'));
         $this->assertSame([
-            ['key' => 'available', 'count' => 1],
+            ['key' => 'available', 'count' => 4],
             ['key' => 'expired', 'count' => 1],
         ], $response->json('data.charts.deals_by_status'));
 
@@ -162,10 +184,13 @@ class InstitutionDashboardTest extends TestCase
         $this->assertSame($investor->name, $completedRow['investor']['name']);
 
         $recentDealUuids = array_column($response->json('data.recent.deals'), 'uuid');
-        $this->assertSame([$expired->uuid, $available->uuid], $recentDealUuids);
+        $this->assertSame([$hotOnlyDeal->uuid, $expired->uuid, $available->uuid], $recentDealUuids);
+        $this->assertNotContains($normalDeal->uuid, $recentDealUuids);
+        $this->assertNotContains($yesterdayDeal->uuid, $recentDealUuids);
         $this->assertNotContains($otherDeal->uuid, $recentDealUuids);
-        $this->assertFalse($response->json('data.recent.deals.1.is_expired'));
-        $this->assertTrue($response->json('data.recent.deals.0.is_expired'));
+        $this->assertFalse($response->json('data.recent.deals.0.is_expired'));
+        $this->assertTrue($response->json('data.recent.deals.1.is_expired'));
+        $this->assertFalse($response->json('data.recent.deals.2.is_expired'));
 
         $submissionIds = array_column($response->json('data.recent.my_submissions'), 'id');
         $this->assertSame([$pendingCompany->id, $company->id], $submissionIds);

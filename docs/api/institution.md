@@ -445,7 +445,11 @@ Auth: partner API token. `partner.type` must be `Institution`. Any other partner
 
 No body. No query parameters.
 
-This route does not write `seller_company_share_price`. `price_uploaded_today` and `price_not_uploaded_today` are not returned.
+This route does not write `seller_company_share_price`. An Institution has no seller share-price upload, so these counts do not read that table.
+
+`summary.companies.price_uploaded_today` is the number of distinct approved companies (`company.is_deleted` = 0 and `approval_status` = `approved`) where this Institution created at least one normal deal today. A normal deal is `company_deals.is_deleted` = 0, `is_hot_deal` = false, `created_by_partner_id` = this Institution, and `created_at` on today's date. A hot deal does not count. Another Institution's deal does not count. A normal deal created on an earlier day does not count.
+
+`summary.companies.price_not_uploaded_today` is `total_companies` minus `price_uploaded_today`, and it is never below 0. `total_companies` is the approved catalog.
 
 `access` is this Institution's `is_primary_access`, `is_secondary_access`, and `is_preipo_access` on `PartnerModel` (booleans).
 
@@ -467,7 +471,7 @@ Buckets on that order list:
 
 `charts.transaction_status` is `pending`, `processing`, and `completed` with labels Pending, Processing, and Completed. `charts.deals_by_status` is `available` and `expired`. `charts.top_companies_by_completed_amount` is the top 5 completed orders by `SUM(investment_amount)`: `company_id`, `brand_name`, `logo`, `completed_count`, `completed_amount`.
 
-`recent.deals` and `recent.my_submissions` are the latest 5, same fields as the seller dashboard, scoped to this Institution. `recent.transactions` is the latest 5 in the order scope above. Each row has the seller fields (`id`, `status`, `investment_amount`, `created_at`, company `id` / `brand_name` / `logo`) plus `order_step` and `investor` (`id`, `name`).
+`recent.deals` is the latest 5 hot deals only (`is_hot_deal` = true), same fields as the seller dashboard, scoped to this Institution. Normal share-price deals are omitted. `recent.my_submissions` is the latest 5, same fields as the seller dashboard. `recent.transactions` is the latest 5 in the order scope above. Each row has the seller fields (`id`, `status`, `investment_amount`, `created_at`, company `id` / `brand_name` / `logo`) plus `order_step` and `investor` (`id`, `name`).
 
 Success (`status` `1`): message `Dashboard`.
 
@@ -484,7 +488,7 @@ Success (`status` `1`): message `Dashboard`.
     "summary": {
       "transactions": { "pending": 0, "processing": 0, "completed": 0 },
       "deals": { "available": 0, "expired": 0 },
-      "companies": { "pending_approval": 0, "total_companies": 0 }
+      "companies": { "pending_approval": 0, "total_companies": 0, "price_uploaded_today": 0, "price_not_uploaded_today": 0 }
     },
     "charts": {
       "transaction_volume": {
