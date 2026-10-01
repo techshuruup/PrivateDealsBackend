@@ -79,7 +79,7 @@ class PreIpoPartnerBuyTest extends TestCase
         $response = $this->postJson('/api/v2/business/pre-ipo/buy', [
             'orders' => [
                 [
-                    'deal_id' => $deal->id,
+                    'deal_uuid' => $deal->uuid,
                     'investor_id' => $client->id,
                     'shares' => 6,
                     'share_price' => 102,
@@ -90,7 +90,7 @@ class PreIpoPartnerBuyTest extends TestCase
                     'is_distributer' => false,
                 ],
                 [
-                    'deal_id' => $deal->id,
+                    'deal_uuid' => $deal->uuid,
                     'investor_id' => $rmClient->id,
                     'shares' => 4,
                     'share_price' => 110,
@@ -133,13 +133,13 @@ class PreIpoPartnerBuyTest extends TestCase
         $rejected = $this->postJson('/api/v2/business/pre-ipo/buy', [
             'orders' => [
                 [
-                    'deal_id' => $deal->id,
+                    'deal_uuid' => $deal->uuid,
                     'investor_id' => $client->id,
                     'shares' => 2,
                     'share_price' => 102,
                 ],
                 [
-                    'deal_id' => $deal->id,
+                    'deal_uuid' => $deal->uuid,
                     'investor_id' => $stranger->id,
                     'shares' => 2,
                     'share_price' => 102,
@@ -153,7 +153,7 @@ class PreIpoPartnerBuyTest extends TestCase
 
         $belowMin = $this->postJson('/api/v2/business/pre-ipo/buy', [
             'orders' => [
-                ['deal_id' => $deal->id, 'investor_id' => $client->id, 'shares' => 1, 'share_price' => 102],
+                ['deal_uuid' => $deal->uuid, 'investor_id' => $client->id, 'shares' => 1, 'share_price' => 102],
             ],
         ]);
         $this->assertSame(0, $belowMin->json('status'), json_encode($belowMin->json()));
@@ -161,8 +161,8 @@ class PreIpoPartnerBuyTest extends TestCase
 
         $over = $this->postJson('/api/v2/business/pre-ipo/buy', [
             'orders' => [
-                ['deal_id' => $deal->id, 'investor_id' => $client->id, 'shares' => 6, 'share_price' => 102],
-                ['deal_id' => $deal->id, 'investor_id' => $rmClient->id, 'shares' => 6, 'share_price' => 102],
+                ['deal_uuid' => $deal->uuid, 'investor_id' => $client->id, 'shares' => 6, 'share_price' => 102],
+                ['deal_uuid' => $deal->uuid, 'investor_id' => $rmClient->id, 'shares' => 6, 'share_price' => 102],
             ],
         ]);
         $this->assertSame(0, $over->json('status'), json_encode($over->json()));
@@ -176,7 +176,7 @@ class PreIpoPartnerBuyTest extends TestCase
         ]);
         $open = $this->postJson('/api/v2/business/pre-ipo/buy', [
             'orders' => [
-                ['deal_id' => $openDeal->id, 'investor_id' => $client->id, 'shares' => 50, 'share_price' => 102],
+                ['deal_uuid' => $openDeal->uuid, 'investor_id' => $client->id, 'shares' => 50, 'share_price' => 102],
             ],
         ]);
         $this->assertSame(1, $open->json('status'), json_encode($open->json()));
@@ -190,7 +190,7 @@ class PreIpoPartnerBuyTest extends TestCase
         ]);
         $missingBase = $this->postJson('/api/v2/business/pre-ipo/buy', [
             'orders' => [
-                ['deal_id' => $noBase->id, 'investor_id' => $client->id, 'shares' => 1, 'share_price' => 102],
+                ['deal_uuid' => $noBase->uuid, 'investor_id' => $client->id, 'shares' => 1, 'share_price' => 102],
             ],
         ]);
         $this->assertSame(0, $missingBase->json('status'));
@@ -209,7 +209,7 @@ class PreIpoPartnerBuyTest extends TestCase
         ]);
         $noPartner = $this->postJson('/api/v2/business/pre-ipo/buy', [
             'orders' => [
-                ['deal_id' => $sellerDeal->id, 'investor_id' => $client->id, 'shares' => 1, 'share_price' => 102],
+                ['deal_uuid' => $sellerDeal->uuid, 'investor_id' => $client->id, 'shares' => 1, 'share_price' => 102],
             ],
         ]);
         $this->assertSame(0, $noPartner->json('status'));
@@ -223,7 +223,7 @@ class PreIpoPartnerBuyTest extends TestCase
         ]);
         $missingSelf = $this->postJson('/api/v2/business/pre-ipo/buy', [
             'orders' => [
-                ['deal_id' => $bareDeal->id, 'investor_id' => $client->id, 'shares' => 1, 'share_price' => 102],
+                ['deal_uuid' => $bareDeal->uuid, 'investor_id' => $client->id, 'shares' => 1, 'share_price' => 102],
             ],
         ]);
         $this->assertSame(0, $missingSelf->json('status'));

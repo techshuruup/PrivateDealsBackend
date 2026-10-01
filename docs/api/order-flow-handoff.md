@@ -28,7 +28,7 @@ Any logged-in partner can call this. The body is JSON.
 {
   "orders": [
     {
-      "deal_id": 15,
+      "deal_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
       "investor_id": 22,
       "shares": 10,
       "share_price": 102
@@ -37,7 +37,7 @@ Any logged-in partner can call this. The body is JSON.
 }
 ```
 
-`orders` is required and must contain at least one item. Each item needs `deal_id`, `investor_id`, `shares` (integer, at least 1), and `share_price` (the price the partner types). The app already has the investor id and the sell-deal id. Do not send `partner_id`, `seller_id`, `base_price`, or `distributer_price`. The server ignores those if they are sent.
+`orders` is required and must contain at least one item. Each item needs `deal_uuid` (the sell-deal `uuid` from the company list), `investor_id`, `shares` (integer, at least 1), and `share_price` (the price the partner types). The app already has the investor id and the sell-deal uuid. Do not send `deal_id`, `partner_id`, `seller_id`, `base_price`, or `distributer_price`. The server ignores those if they are sent.
 
 The deal must be an available, unexpired sell deal created by an Institution, with a base price. The investor must belong to this partner (a client, a relation manager’s client, or this partner’s self investor). Shares must be at least the deal minimum. When the deal has a positive available quantity, the shares in this request, added together for the same deal, must not exceed it. The available quantity is not reduced. One failed item inserts nothing. `share_price` is not checked against the deal price.
 

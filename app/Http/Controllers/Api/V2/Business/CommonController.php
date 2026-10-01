@@ -357,7 +357,7 @@ class CommonController extends Controller
         $request = request();
         $validation = Validator::make($request->all(), [
             'orders' => 'required|array|min:1',
-            'orders.*.deal_id' => 'required|integer|min:1',
+            'orders.*.deal_uuid' => 'required|uuid',
             'orders.*.investor_id' => 'required|integer|min:1',
             'orders.*.shares' => 'required|integer|min:1',
             'orders.*.share_price' => 'required|numeric',
@@ -379,7 +379,7 @@ class CommonController extends Controller
             }
 
             $deal = CompanyDealModel::query()
-                ->whereKey($item['deal_id'])
+                ->where('uuid', $item['deal_uuid'])
                 ->notDeleted()
                 ->notExpired()
                 ->where('status', CompanyDealStatusEnum::available->value)

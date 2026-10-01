@@ -54,7 +54,7 @@ class PreIpoOrderStepTest extends TestCase
 
         $created = $this->postJson('/api/v2/business/pre-ipo/buy', [
             'orders' => [[
-                'deal_id' => $deal->id,
+                'deal_uuid' => $deal->uuid,
                 'investor_id' => $client->id,
                 'shares' => 2,
                 'share_price' => 102,
@@ -182,7 +182,7 @@ class PreIpoOrderStepTest extends TestCase
         $this->actingAs($buyer, 'partner-api-guard');
         $created = $this->postJson('/api/v2/business/pre-ipo/buy', [
             'orders' => [[
-                'deal_id' => $deal->id,
+                'deal_uuid' => $deal->uuid,
                 'investor_id' => $client->id,
                 'shares' => 2,
                 'share_price' => 102,
@@ -433,7 +433,7 @@ class PreIpoOrderStepTest extends TestCase
         $this->actingAs($buyer, 'partner-api-guard');
         $response = $this->postJson('/api/v2/business/pre-ipo/buy', [
             'orders' => [[
-                'deal_id' => $deal->id,
+                'deal_uuid' => $deal->uuid,
                 'investor_id' => $client->id,
                 'shares' => 2,
                 'share_price' => 110,

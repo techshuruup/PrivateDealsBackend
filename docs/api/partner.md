@@ -247,7 +247,7 @@ This does not change V1 buy or V2 investor `POST /api/v2/investor/pre-ipo/buy`.
 {
   "orders": [ // array required — minimum 1
     {
-      "deal_id": 1, // integer required — see deal rules below
+      "deal_uuid": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d", // uuid required — company deal uuid; see deal rules below
       "investor_id": 2, // integer required — owned investor; same ownership as cml/read
       "shares": 10, // integer required — minimum 1, and at least the deal minimum_qty
       "share_price": 102 // numeric required — price this partner quotes the investor
@@ -256,15 +256,15 @@ This does not change V1 buy or V2 investor `POST /api/v2/investor/pre-ipo/buy`.
 }
 ```
 
-Deal (`deal_id`). The deal is not deleted, not expired, `status` is `available`, `deal_type` is `sell`, and `created_by_partner_id` is set. A null `created_by_partner_id` is rejected. There is no seller fallback. `company_id` on the order is the deal's `company_id`.
+Deal (`deal_uuid`). The uuid from the company deal list. The deal is not deleted, not expired, `status` is `available`, `deal_type` is `sell`, and `created_by_partner_id` is set. A null `created_by_partner_id` is rejected. There is no seller fallback. `company_id` on the order is the deal's `company_id`. A numeric `deal_id` does not select the deal.
 
 Investor (`investor_id`). Same ownership as CML read: not deleted, and either a non-self investor of this partner or one of their relation managers, or this partner's self investor. Another partner's investor is rejected.
 
-Shares. When `available_quantity` is greater than 0, shares must not exceed it. Repeated `deal_id` values in the same request are added together and must still fit. `available_quantity` is not decremented.
+Shares. When `available_quantity` is greater than 0, shares must not exceed it. Repeated `deal_uuid` values in the same request are added together and must still fit. `available_quantity` is not decremented.
 
 `share_price` has no minimum against the deal price.
 
-Not accepted from the client (ignored if sent): `distributer_price`, `payment_mode`, `is_distributer`, `seller_id`, `partner_id`. No coupons.
+Not accepted from the client (ignored if sent): `deal_id`, `distributer_price`, `payment_mode`, `is_distributer`, `seller_id`, `partner_id`. No coupons.
 
 Saved on each row (`status` stays `0`, `order_step` is `mandate_pending`):
 

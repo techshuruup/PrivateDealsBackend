@@ -17,7 +17,7 @@ flowchart TD
 
 - V1/V2 investor + V1 business buy/sell/cancel
 - V1 `POST pre-ipo/buy` accepts optional `seller_id` (integer for all rows, or parallel array) — stored on `pre_ipo_transaction.seller_id` at create time
-- V2 business `POST /api/v2/business/pre-ipo/buy` (`partner-api-guard`) places one or more orders in one database transaction. Body is `orders[]` of `deal_id`, `investor_id`, `shares`, and `share_price`. It does not accept `distributer_price`, `payment_mode`, `is_distributer`, `seller_id`, `partner_id`, or coupons. Any failed item rejects the whole request and inserts nothing.
+- V2 business `POST /api/v2/business/pre-ipo/buy` (`partner-api-guard`) places one or more orders in one database transaction. Body is `orders[]` of `deal_uuid`, `investor_id`, `shares`, and `share_price`. `deal_uuid` is the company deal uuid. It does not accept `deal_id`, `distributer_price`, `payment_mode`, `is_distributer`, `seller_id`, `partner_id`, or coupons. Any failed item rejects the whole request and inserts nothing. The saved `deal_id` is still the integer id of that deal.
 - On each partner order: `status = 0`, `company_id` from the deal, `deal_id`, `partner_id` = the Institution on the deal, `seller_investor_id` = that Institution’s self investor, `seller_id` null, `base_price` = deal `base_price`, `distributer_price` = deal `share_price`, `share_price` = the partner’s quoted price, `is_distributer` true, `payment_mode` `RTGS`. Example: base 99, distributer 100, quoted share 102.
 - The partner order does not change the status machine. Admin approve still goes `0 → 2` and reject `0 → 1`. Institution rows (`partner_id` set) do not need a seller master row.
 - V2 payment receipt upload + calculate
